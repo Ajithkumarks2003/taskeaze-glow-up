@@ -5,17 +5,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { mockUser } from '@/services/mockData';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
-import { BellRing, LogOut, Settings } from 'lucide-react';
+import { BellRing, LogOut, Settings, User, Pen } from 'lucide-react';
 
 export default function Profile() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [emailNotifications, setEmailNotifications] = useState(false);
+  const [isNameEditing, setIsNameEditing] = useState(false);
+  const [userName, setUserName] = useState(mockUser.name);
   
   const handleLogout = () => {
     localStorage.removeItem('isLoggedIn');
@@ -34,11 +37,27 @@ export default function Profile() {
     return date.toLocaleDateString();
   };
   
+  const handleNameSave = () => {
+    if (userName.trim()) {
+      setIsNameEditing(false);
+      toast({
+        title: "Name updated",
+        description: "Your name has been updated successfully",
+      });
+    } else {
+      toast({
+        title: "Error",
+        description: "Name cannot be empty",
+        variant: "destructive",
+      });
+    }
+  };
+  
   return (
     <AppLayout>
       <div className="container max-w-3xl mx-auto space-y-8">
         <ProfileHeader 
-          name={mockUser.name}
+          name={userName}
           email={mockUser.email}
           joinDate={formatDate(mockUser.joinedAt)}
           score={mockUser.score}
@@ -58,6 +77,58 @@ export default function Profile() {
             <CardDescription>Manage your account preferences</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium">Profile Information</h3>
+              
+              <div className="space-y-2">
+                <Label htmlFor="display-name">Display Name</Label>
+                <div className="flex items-center gap-2">
+                  {isNameEditing ? (
+                    <>
+                      <Input 
+                        id="display-name" 
+                        value={userName} 
+                        onChange={(e) => setUserName(e.target.value)} 
+                        className="flex-1"
+                      />
+                      <Button 
+                        onClick={handleNameSave} 
+                        size="sm" 
+                        className="bg-neon-pink hover:bg-neon-pink/80"
+                      >
+                        Save
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          setUserName(mockUser.name);
+                          setIsNameEditing(false);
+                        }}
+                        size="sm"
+                        variant="outline"
+                      >
+                        Cancel
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex-1 py-2 px-3 bg-dark-accent rounded-md border border-dark-border">
+                        <span>{userName}</span>
+                      </div>
+                      <Button
+                        onClick={() => setIsNameEditing(true)}
+                        size="sm"
+                        variant="outline"
+                        className="border-dark-border"
+                      >
+                        <Pen className="h-4 w-4 mr-1" />
+                        Edit
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+            
             <div className="space-y-4">
               <h3 className="text-lg font-medium">Notifications</h3>
               

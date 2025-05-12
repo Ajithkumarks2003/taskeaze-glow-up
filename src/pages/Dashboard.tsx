@@ -1,6 +1,7 @@
 
 import { useEffect, useState } from 'react';
 import { AppLayout } from '@/components/common/AppLayout';
+import { Logo } from '@/components/common/Logo';
 import { TaskSummary } from '@/components/dashboard/TaskSummary';
 import { StatsCard } from '@/components/dashboard/StatsCard';
 import { ScoreDisplay } from '@/components/gamification/ScoreDisplay';
@@ -78,9 +79,12 @@ export default function Dashboard() {
     <AppLayout>
       <div className="container max-w-5xl mx-auto space-y-8">
         <div className="flex flex-col md:flex-row items-center md:items-start md:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold">Welcome back, {mockUser.name.split(' ')[0]}</h1>
-            <p className="text-muted-foreground">Here's your task overview for today.</p>
+          <div className="flex items-center gap-4">
+            <Logo className="hidden md:flex" />
+            <div>
+              <h1 className="text-2xl font-bold">Welcome back, {mockUser.name.split(' ')[0]}</h1>
+              <p className="text-muted-foreground">Here's your task overview for today.</p>
+            </div>
           </div>
           <ScoreDisplay score={mockUser.score} level={mockUser.level} />
         </div>
