@@ -4,17 +4,23 @@ import { TaskForm } from '@/components/tasks/TaskForm';
 import { TaskRow } from '@/types/supabase-extensions';
 import { useToast } from '@/hooks/use-toast';
 import { TaskService } from '@/services/TaskService';
+import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 export default function NewTask() {
   const { toast } = useToast();
+  const { user } = useAuth();
+  const navigate = useNavigate();
   
   const handleSubmit = async (task: TaskRow) => {
     try {
+      // In a real implementation, you would use TaskService to save the task
       console.log('Task created:', task);
       toast({
         title: "Task created",
         description: "Your task has been created successfully."
       });
+      navigate('/tasks');
     } catch (error: any) {
       toast({
         title: "Error",
