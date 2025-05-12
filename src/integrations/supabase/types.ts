@@ -9,7 +9,184 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      achievements: {
+        Row: {
+          description: string
+          icon: string | null
+          id: string
+          name: string
+          required_progress: number
+        }
+        Insert: {
+          description: string
+          icon?: string | null
+          id?: string
+          name: string
+          required_progress?: number
+        }
+        Update: {
+          description?: string
+          icon?: string | null
+          id?: string
+          name?: string
+          required_progress?: number
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          email: string
+          id: string
+          joined_at: string
+          level: number
+          name: string
+          role: string
+          score: number
+        }
+        Insert: {
+          avatar_url?: string | null
+          email: string
+          id: string
+          joined_at?: string
+          level?: number
+          name: string
+          role?: string
+          score?: number
+        }
+        Update: {
+          avatar_url?: string | null
+          email?: string
+          id?: string
+          joined_at?: string
+          level?: number
+          name?: string
+          role?: string
+          score?: number
+        }
+        Relationships: []
+      }
+      tasks: {
+        Row: {
+          completed: boolean
+          created_at: string
+          description: string | null
+          due_date: string | null
+          id: string
+          points: number
+          priority: string
+          tags: string[] | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          completed?: boolean
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          points?: number
+          priority?: string
+          tags?: string[] | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          completed?: boolean
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          points?: number
+          priority?: string
+          tags?: string[] | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_achievements: {
+        Row: {
+          achievement_id: string
+          id: string
+          progress: number
+          unlocked: boolean
+          unlocked_at: string | null
+          user_id: string
+        }
+        Insert: {
+          achievement_id: string
+          id?: string
+          progress?: number
+          unlocked?: boolean
+          unlocked_at?: string | null
+          user_id: string
+        }
+        Update: {
+          achievement_id?: string
+          id?: string
+          progress?: number
+          unlocked?: boolean
+          unlocked_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_achievements_achievement_id_fkey"
+            columns: ["achievement_id"]
+            isOneToOne: false
+            referencedRelation: "achievements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_achievements_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_stats: {
+        Row: {
+          completed_tasks: number
+          last_active_date: string
+          streaks: number
+          total_tasks: number
+          user_id: string
+        }
+        Insert: {
+          completed_tasks?: number
+          last_active_date?: string
+          streaks?: number
+          total_tasks?: number
+          user_id: string
+        }
+        Update: {
+          completed_tasks?: number
+          last_active_date?: string
+          streaks?: number
+          total_tasks?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_stats_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

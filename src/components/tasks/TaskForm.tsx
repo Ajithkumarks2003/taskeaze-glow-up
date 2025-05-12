@@ -7,20 +7,21 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Task } from '@/types/task';
 import { useToast } from '@/hooks/use-toast';
+import { TaskService } from '@/services/TaskService';
+import { TaskRow } from '@/types/supabase-extensions';
 
 interface TaskFormProps {
-  existingTask?: Task;
-  onSubmit: (task: Partial<Task>) => void;
+  existingTask?: TaskRow;
+  onSubmit?: (task: TaskRow) => void;
 }
 
 export function TaskForm({ existingTask, onSubmit }: TaskFormProps) {
   const [title, setTitle] = useState(existingTask?.title || '');
   const [description, setDescription] = useState(existingTask?.description || '');
-  const [priority, setPriority] = useState<'Low' | 'Medium' | 'High' | 'Urgent'>(existingTask?.priority || 'Medium');
+  const [priority, setPriority] = useState<'Low' | 'Medium' | 'High' | 'Urgent'>(existingTask?.priority as any || 'Medium');
   const [dueDate, setDueDate] = useState(
-    existingTask?.dueDate ? new Date(existingTask.dueDate).toISOString().split('T')[0] : ''
+    existingTask?.due_date ? new Date(existingTask.due_date).toISOString().split('T')[0] : ''
   );
   const [tags, setTags] = useState(existingTask?.tags?.join(', ') || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -38,19 +39,21 @@ export function TaskForm({ existingTask, onSubmit }: TaskFormProps) {
         ? tags.split(',').map(tag => tag.trim()).filter(Boolean)
         : [];
         
-      const taskData: Partial<Task> = {
-        ...existingTask,
+      const taskData = {
         title,
         description,
         priority,
         tags: processedTags,
-        dueDate: dueDate ? new Date(dueDate).toISOString() : undefined,
+        due_date: dueDate ? new Date(dueDate).toISOString() : null,
       };
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 800));
+      let savedTask;
       
-      onSubmit(taskData);
+      if (existingTask) {
+        savedTask = await TaskService.updateTask(existingTask.id, taskData);
+      } else {
+        savedTask = await TaskService.createTask(taskData);
+      }
       
       toast({
         title: existingTask ? 'Task updated' : 'Task created',
@@ -59,13 +62,17 @@ export function TaskForm({ existingTask, onSubmit }: TaskFormProps) {
           : 'Your new task has been created',
       });
       
-      navigate('/tasks');
-    } catch (error) {
+      if (onSubmit) {
+        onSubmit(savedTask);
+      } else {
+        navigate('/tasks');
+      }
+    } catch (error: any) {
       toast({
         title: 'Error',
         description: existingTask 
-          ? 'Failed to update task' 
-          : 'Failed to create task',
+          ? 'Failed to update task: ' + error.message 
+          : 'Failed to create task: ' + error.message,
         variant: 'destructive',
       });
     } finally {

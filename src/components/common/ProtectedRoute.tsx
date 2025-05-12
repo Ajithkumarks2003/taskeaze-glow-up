@@ -1,27 +1,33 @@
 
 import { Navigate, Outlet } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 
-type ProtectedRouteProps = {
-  requiredRole?: 'admin' | 'user';
-  redirectPath?: string;
-};
+interface ProtectedRouteProps {
+  requiredRole?: string;
+}
 
-export function ProtectedRoute({ 
-  requiredRole, 
-  redirectPath = '/login' 
-}: ProtectedRouteProps) {
-  const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
-  const userRole = localStorage.getItem('userRole');
-  
-  // If not logged in, redirect to login
-  if (!isLoggedIn) {
-    return <Navigate to={redirectPath} replace />;
+export const ProtectedRoute = ({ requiredRole }: ProtectedRouteProps) => {
+  const { user, profile, isLoading } = useAuth();
+
+  // Show loading state if auth is still being determined
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-neon-pink"></div>
+      </div>
+    );
   }
-  
-  // If role is required and user doesn't have it, redirect
-  if (requiredRole && userRole !== requiredRole) {
+
+  // If no user is logged in, redirect to login
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // If role check is needed and user doesn't have required role
+  if (requiredRole && profile?.role !== requiredRole) {
     return <Navigate to="/dashboard" replace />;
   }
 
+  // User is authorized, render the child routes
   return <Outlet />;
-}
+};

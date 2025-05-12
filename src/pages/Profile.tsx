@@ -1,4 +1,5 @@
 
+import { useEffect, useState } from 'react';
 import { AppLayout } from '@/components/common/AppLayout';
 import { ProfileHeader } from '@/components/profile/ProfileHeader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,44 +7,71 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { mockUser } from '@/services/mockData';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
-import { useState } from 'react';
-import { BellRing, LogOut, Settings, User, Pen } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { BellRing, LogOut, Settings, Pen } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function Profile() {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { profile, signOut } = useAuth();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [emailNotifications, setEmailNotifications] = useState(false);
   const [isNameEditing, setIsNameEditing] = useState(false);
-  const [userName, setUserName] = useState(mockUser.name);
+  const [userName, setUserName] = useState('');
+  const [userStats, setUserStats] = useState({
+    completedTasks: 0,
+    totalTasks: 0
+  });
   
-  const handleLogout = () => {
-    localStorage.removeItem('isLoggedIn');
-    localStorage.removeItem('userRole');
-    
-    toast({
-      title: "Logged out",
-      description: "You have been logged out successfully",
-    });
-    
-    navigate('/login');
-  };
+  useEffect(() => {
+    if (profile) {
+      setUserName(profile.name);
+      
+      // Fetch user stats
+      const fetchUserStats = async () => {
+        const { data, error } = await supabase
+          .from('user_stats')
+          .select('*')
+          .eq('user_id', profile.id)
+          .maybeSingle();
+          
+        if (!error && data) {
+          setUserStats({
+            completedTasks: data.completed_tasks,
+            totalTasks: data.total_tasks
+          });
+        }
+      };
+      
+      fetchUserStats();
+    }
+  }, [profile]);
   
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString();
-  };
-  
-  const handleNameSave = () => {
-    if (userName.trim()) {
-      setIsNameEditing(false);
-      toast({
-        title: "Name updated",
-        description: "Your name has been updated successfully",
-      });
+  const handleNameSave = async () => {
+    if (userName.trim() && profile) {
+      try {
+        const { error } = await supabase
+          .from('profiles')
+          .update({ name: userName.trim() })
+          .eq('id', profile.id);
+          
+        if (error) throw error;
+        
+        setIsNameEditing(false);
+        toast({
+          title: "Name updated",
+          description: "Your name has been updated successfully",
+        });
+      } catch (error: any) {
+        toast({
+          title: "Error",
+          description: "Failed to update name: " + error.message,
+          variant: "destructive",
+        });
+      }
     } else {
       toast({
         title: "Error",
@@ -53,19 +81,32 @@ export default function Profile() {
     }
   };
   
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleDateString();
+  };
+  
+  if (!profile) {
+    return (
+      <AppLayout>
+        <div className="container max-w-3xl mx-auto space-y-8 flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-neon-pink"></div>
+        </div>
+      </AppLayout>
+    );
+  }
+  
   return (
     <AppLayout>
       <div className="container max-w-3xl mx-auto space-y-8">
         <ProfileHeader 
           name={userName}
-          email={mockUser.email}
-          joinDate={formatDate(mockUser.joinedAt)}
-          score={mockUser.score}
-          level={mockUser.level}
-          tasks={{
-            completed: mockUser.stats.completedTasks,
-            total: mockUser.stats.totalTasks,
-          }}
+          email={profile.email}
+          joinDate={formatDate(profile.joined_at)}
+          score={profile.score}
+          level={profile.level}
+          tasks={userStats}
         />
         
         <Card className="bg-dark-card border-dark-border">
@@ -100,7 +141,7 @@ export default function Profile() {
                       </Button>
                       <Button
                         onClick={() => {
-                          setUserName(mockUser.name);
+                          setUserName(profile.name);
                           setIsNameEditing(false);
                         }}
                         size="sm"
@@ -165,7 +206,7 @@ export default function Profile() {
               <Button 
                 variant="destructive" 
                 className="w-full sm:w-auto"
-                onClick={handleLogout}
+                onClick={signOut}
               >
                 <LogOut className="mr-2 h-4 w-4" />
                 Log out

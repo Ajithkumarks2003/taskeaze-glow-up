@@ -1,111 +1,112 @@
 
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+
+const loginSchema = z.object({
+  email: z.string().email('Please enter a valid email'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+});
+
+type LoginFormValues = z.infer<typeof loginSchema>;
 
 export function LoginForm() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const { signIn } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-  const navigate = useNavigate();
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  
+  const form = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+    },
+  });
+  
+  const onSubmit = async (values: LoginFormValues) => {
     setIsLoading(true);
-
     try {
-      // For demonstration, we'll simulate authentication
-      // In a real app, you would integrate with an auth service
-      if (email && password) {
-        // Replace with actual authentication
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // For demo: Admin detection
-        const isAdmin = email.includes('admin');
-        localStorage.setItem('userRole', isAdmin ? 'admin' : 'user');
-        localStorage.setItem('isLoggedIn', 'true');
-        
-        toast({
-          title: 'Login successful',
-          description: `Welcome back${isAdmin ? ', admin' : ''}!`,
-        });
-        
-        navigate('/dashboard');
-      } else {
-        toast({
-          title: 'Login failed',
-          description: 'Please provide both email and password',
-          variant: 'destructive',
-        });
-      }
+      await signIn(values.email, values.password);
     } catch (error) {
-      toast({
-        title: 'Login failed',
-        description: 'Please check your credentials and try again',
-        variant: 'destructive',
-      });
+      // Error is handled in the signIn function
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="space-y-2">
-        <Label htmlFor="email">Email</Label>
-        <Input 
-          id="email" 
-          type="email" 
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="you@example.com"
-          required 
-          className="bg-dark-accent text-foreground border-dark-border focus:border-neon-pink"
-        />
-      </div>
-      
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <Label htmlFor="password">Password</Label>
-          <Link 
-            to="/forgot-password" 
-            className="text-sm text-neon-pink hover:text-neon-violet transition-colors"
-          >
-            Forgot password?
-          </Link>
-        </div>
-        
-        <Input 
-          id="password" 
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required 
-          className="bg-dark-accent text-foreground border-dark-border focus:border-neon-pink"
-        />
-      </div>
-      
-      <Button 
-        type="submit" 
-        disabled={isLoading} 
-        className="w-full bg-gradient-to-r from-neon-pink to-neon-violet hover:shadow-lg hover:shadow-neon-pink/20 transition-all"
-      >
-        {isLoading ? 'Signing in...' : 'Sign in'}
-      </Button>
-      
-      <div className="text-center text-sm text-muted-foreground">
-        Don't have an account?{' '}
-        <Link 
-          to="/register" 
-          className="text-neon-pink hover:text-neon-violet transition-colors"
-        >
-          Sign up
-        </Link>
-      </div>
-    </form>
+    <Card className="w-full bg-dark-card border-dark-border max-w-md mx-auto">
+      <CardContent className="pt-6">
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="your.email@example.com"
+                      className="bg-dark-accent text-foreground border-dark-border"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Password</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="password"
+                      placeholder="••••••••"
+                      className="bg-dark-accent text-foreground border-dark-border"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <Button 
+              type="submit" 
+              className="w-full bg-gradient-to-r from-neon-pink to-neon-violet"
+              disabled={isLoading}
+            >
+              {isLoading ? 'Signing In...' : 'Sign In'}
+            </Button>
+            
+            <div className="text-center text-sm">
+              <span className="text-muted-foreground">
+                Don't have an account?{' '}
+              </span>
+              <Link 
+                to="/register" 
+                className="text-neon-pink hover:text-neon-violet transition-colors"
+              >
+                Sign up
+              </Link>
+            </div>
+          </form>
+        </Form>
+      </CardContent>
+    </Card>
   );
 }
