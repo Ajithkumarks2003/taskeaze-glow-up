@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -61,7 +62,15 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
-				}
+				},
+				// TaskEaze custom colors
+				'neon-pink': '#FF6EC7',
+				'neon-violet': '#9D50FF',
+				'dark-bg': '#121212',
+				'dark-card': '#1E1E1E',
+				'dark-border': '#333333',
+				'dark-hover': '#2A2A2A',
+				'dark-accent': '#282828',
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
@@ -70,27 +79,60 @@ export default {
 			},
 			keyframes: {
 				'accordion-down': {
-					from: {
-						height: '0'
-					},
-					to: {
-						height: 'var(--radix-accordion-content-height)'
-					}
+					from: { height: '0' },
+					to: { height: 'var(--radix-accordion-content-height)' }
 				},
 				'accordion-up': {
-					from: {
-						height: 'var(--radix-accordion-content-height)'
+					from: { height: 'var(--radix-accordion-content-height)' },
+					to: { height: '0' }
+				},
+				'fade-in': {
+					'0%': { opacity: '0', transform: 'translateY(10px)' },
+					'100%': { opacity: '1', transform: 'translateY(0)' }
+				},
+				'pulse-glow': {
+					'0%, 100%': { 
+						boxShadow: '0 0 5px rgba(255, 110, 199, 0.5), 0 0 10px rgba(255, 110, 199, 0.3)' 
 					},
-					to: {
-						height: '0'
-					}
+					'50%': { 
+						boxShadow: '0 0 20px rgba(255, 110, 199, 0.8), 0 0 30px rgba(255, 110, 199, 0.5)' 
+					},
+				},
+				'float': {
+					'0%, 100%': { transform: 'translateY(0)' },
+					'50%': { transform: 'translateY(-10px)' },
+				},
+				'task-complete': {
+					'0%': { transform: 'scale(1)' },
+					'50%': { transform: 'scale(1.05)', filter: 'brightness(1.2)' },
+					'100%': { transform: 'scale(1)' },
+				},
+				'gradient-flow': {
+					'0%': { backgroundPosition: '0% 50%' },
+					'50%': { backgroundPosition: '100% 50%' },
+					'100%': { backgroundPosition: '0% 50%' },
+				},
+				'particle-move': {
+					'0%': { transform: 'translate(0, 0) rotate(0deg)' },
+					'100%': { transform: 'translate(100px, -100px) rotate(360deg)' },
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'fade-in': 'fade-in 0.5s ease-out',
+				'pulse-glow': 'pulse-glow 2s infinite',
+				'float': 'float 6s ease-in-out infinite',
+				'task-complete': 'task-complete 0.5s ease-in-out',
+				'gradient-flow': 'gradient-flow 3s ease infinite',
+				'particle-move': 'particle-move 15s linear infinite'
+			},
+			backgroundImage: {
+				'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+				'neon-gradient': 'linear-gradient(135deg, #FF6EC7, #9D50FF)',
+				'dark-gradient': 'linear-gradient(to bottom, #121212, #1a1a1a)',
 			}
-		}
+		},
 	},
 	plugins: [require("tailwindcss-animate")],
 } satisfies Config;
