@@ -18,7 +18,7 @@ interface TaskFormProps {
 export function TaskForm({ existingTask, onSubmit }: TaskFormProps) {
   const [title, setTitle] = useState(existingTask?.title || '');
   const [description, setDescription] = useState(existingTask?.description || '');
-  const [priority, setPriority] = useState(existingTask?.priority || 'Medium');
+  const [priority, setPriority] = useState<'Low' | 'Medium' | 'High' | 'Urgent'>(existingTask?.priority || 'Medium');
   const [dueDate, setDueDate] = useState(
     existingTask?.dueDate ? new Date(existingTask.dueDate).toISOString().split('T')[0] : ''
   );
@@ -73,6 +73,10 @@ export function TaskForm({ existingTask, onSubmit }: TaskFormProps) {
     }
   };
   
+  const handlePriorityChange = (value: string) => {
+    setPriority(value as 'Low' | 'Medium' | 'High' | 'Urgent');
+  };
+
   return (
     <Card className="bg-dark-card border-dark-border">
       <CardHeader>
@@ -108,7 +112,7 @@ export function TaskForm({ existingTask, onSubmit }: TaskFormProps) {
               <Label htmlFor="priority">Priority</Label>
               <Select 
                 value={priority} 
-                onValueChange={setPriority}
+                onValueChange={handlePriorityChange}
               >
                 <SelectTrigger className="bg-dark-accent border-dark-border">
                   <SelectValue placeholder="Select priority" />
