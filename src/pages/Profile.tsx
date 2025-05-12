@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { AppLayout } from '@/components/common/AppLayout';
 import { ProfileHeader } from '@/components/profile/ProfileHeader';
@@ -106,7 +105,10 @@ export default function Profile() {
           joinDate={formatDate(profile.joined_at)}
           score={profile.score}
           level={profile.level}
-          tasks={userStats}
+          tasks={{
+            completed: userStats.completedTasks,
+            total: userStats.totalTasks
+          }}
         />
         
         <Card className="bg-dark-card border-dark-border">

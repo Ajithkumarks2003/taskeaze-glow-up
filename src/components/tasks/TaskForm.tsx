@@ -16,10 +16,14 @@ interface TaskFormProps {
   onSubmit?: (task: TaskRow) => void;
 }
 
+type TaskPriority = 'Low' | 'Medium' | 'High' | 'Urgent';
+
 export function TaskForm({ existingTask, onSubmit }: TaskFormProps) {
   const [title, setTitle] = useState(existingTask?.title || '');
   const [description, setDescription] = useState(existingTask?.description || '');
-  const [priority, setPriority] = useState<'Low' | 'Medium' | 'High' | 'Urgent'>(existingTask?.priority as any || 'Medium');
+  const [priority, setPriority] = useState<TaskPriority>(
+    (existingTask?.priority as TaskPriority) || 'Medium'
+  );
   const [dueDate, setDueDate] = useState(
     existingTask?.due_date ? new Date(existingTask.due_date).toISOString().split('T')[0] : ''
   );
@@ -42,7 +46,7 @@ export function TaskForm({ existingTask, onSubmit }: TaskFormProps) {
       const taskData = {
         title,
         description,
-        priority,
+        priority: priority as TaskPriority,
         tags: processedTags,
         due_date: dueDate ? new Date(dueDate).toISOString() : null,
       };
@@ -81,7 +85,7 @@ export function TaskForm({ existingTask, onSubmit }: TaskFormProps) {
   };
   
   const handlePriorityChange = (value: string) => {
-    setPriority(value as 'Low' | 'Medium' | 'High' | 'Urgent');
+    setPriority(value as TaskPriority);
   };
 
   return (

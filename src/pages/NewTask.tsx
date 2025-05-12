@@ -1,15 +1,27 @@
 
 import { AppLayout } from '@/components/common/AppLayout';
 import { TaskForm } from '@/components/tasks/TaskForm';
-import { Task } from '@/types/task';
+import { TaskRow } from '@/types/supabase-extensions';
 import { useToast } from '@/hooks/use-toast';
+import { TaskService } from '@/services/TaskService';
 
 export default function NewTask() {
   const { toast } = useToast();
   
-  const handleSubmit = (taskData: Partial<Task>) => {
-    // In a real app, this would save to backend
-    console.log('Task created:', taskData);
+  const handleSubmit = async (task: TaskRow) => {
+    try {
+      console.log('Task created:', task);
+      toast({
+        title: "Task created",
+        description: "Your task has been created successfully."
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to create task: " + error.message,
+        variant: "destructive",
+      });
+    }
   };
   
   return (
