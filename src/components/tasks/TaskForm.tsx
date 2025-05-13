@@ -13,7 +13,7 @@ import { TaskRow } from '@/types/supabase-extensions';
 
 interface TaskFormProps {
   existingTask?: TaskRow;
-  onSubmit?: (task: TaskRow) => void;
+  onSubmit?: (task: Omit<TaskRow, 'id' | 'created_at' | 'user_id' | 'completed' | 'points'>) => void;
 }
 
 type TaskPriority = 'Low' | 'Medium' | 'High' | 'Urgent';
@@ -51,24 +51,25 @@ export function TaskForm({ existingTask, onSubmit }: TaskFormProps) {
         due_date: dueDate ? new Date(dueDate).toISOString() : null,
       };
       
-      let savedTask;
-      
-      if (existingTask) {
-        savedTask = await TaskService.updateTask(existingTask.id, taskData);
-      } else {
-        savedTask = await TaskService.createTask(taskData);
-      }
-      
-      toast({
-        title: existingTask ? 'Task updated' : 'Task created',
-        description: existingTask 
-          ? 'Your task has been updated successfully' 
-          : 'Your new task has been created',
-      });
-      
       if (onSubmit) {
-        onSubmit(savedTask);
+        onSubmit(taskData);
+      } else if (existingTask) {
+        const savedTask = await TaskService.updateTask(existingTask.id, taskData);
+        
+        toast({
+          title: 'Task updated',
+          description: 'Your task has been updated successfully'
+        });
+        
+        navigate('/tasks');
       } else {
+        const savedTask = await TaskService.createTask(taskData);
+        
+        toast({
+          title: 'Task created',
+          description: 'Your new task has been created'
+        });
+        
         navigate('/tasks');
       }
     } catch (error: any) {

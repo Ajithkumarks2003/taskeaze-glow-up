@@ -12,16 +12,26 @@ export default function NewTask() {
   const { user } = useAuth();
   const navigate = useNavigate();
   
-  const handleSubmit = async (task: TaskRow) => {
+  const handleSubmit = async (taskData: Omit<TaskRow, 'id' | 'created_at' | 'user_id' | 'completed' | 'points'>) => {
     try {
-      // In a real implementation, you would use TaskService to save the task
-      console.log('Task created:', task);
+      if (!user) {
+        toast({
+          title: "Authentication Error",
+          description: "You must be logged in to create tasks.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      const task = await TaskService.createTask(taskData);
+      
       toast({
         title: "Task created",
         description: "Your task has been created successfully."
       });
       navigate('/tasks');
     } catch (error: any) {
+      console.error("Task creation error:", error);
       toast({
         title: "Error",
         description: "Failed to create task: " + error.message,

@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { AppLayout } from '@/components/common/AppLayout';
 import { TaskCard } from '@/components/tasks/TaskCard';
-import { Task } from '@/types/task';
+import { TaskRow } from '@/types/supabase-extensions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -10,21 +10,42 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { Link } from 'react-router-dom';
 import { Plus, Search } from 'lucide-react';
-import { mockTasks } from '@/services/mockData';
+import { TaskService } from '@/services/TaskService';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function Tasks() {
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [filteredTasks, setFilteredTasks] = useState<Task[]>([]);
+  const [tasks, setTasks] = useState<TaskRow[]>([]);
+  const [filteredTasks, setFilteredTasks] = useState<TaskRow[]>([]);
   const [activeTab, setActiveTab] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [priorityFilter, setPriorityFilter] = useState('all');
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  const { user } = useAuth();
   
   useEffect(() => {
-    // Load mock tasks
-    setTasks(mockTasks);
-    setFilteredTasks(mockTasks);
-  }, []);
+    // Load user tasks from Supabase
+    if (user) {
+      const fetchTasks = async () => {
+        try {
+          const userTasks = await TaskService.getUserTasks();
+          setTasks(userTasks);
+          setFilteredTasks(userTasks);
+          setIsLoading(false);
+        } catch (error: any) {
+          console.error("Error fetching tasks:", error);
+          toast({
+            title: "Error loading tasks",
+            description: error.message || "Failed to load your tasks",
+            variant: "destructive"
+          });
+          setIsLoading(false);
+        }
+      };
+      
+      fetchTasks();
+    }
+  }, [user, toast]);
   
   useEffect(() => {
     // Apply filters whenever tasks, tab, search query or priority filter changes
@@ -58,32 +79,54 @@ export default function Tasks() {
     setFilteredTasks(result);
   }, [tasks, activeTab, searchQuery, priorityFilter]);
   
-  const handleCompleteTask = (id: string) => {
-    setTasks(tasks.map(task => 
-      task.id === id ? { ...task, completed: true } : task
-    ));
-    
-    toast({
-      title: "Task completed",
-      description: "Well done! You've earned points for this task.",
-    });
+  const handleCompleteTask = async (id: string) => {
+    try {
+      await TaskService.completeTask(id);
+      
+      // Update local state
+      setTasks(tasks.map(task => 
+        task.id === id ? { ...task, completed: true } : task
+      ));
+      
+      toast({
+        title: "Task completed",
+        description: "Well done! You've earned points for this task.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to complete task: " + error.message,
+        variant: "destructive"
+      });
+    }
   };
   
-  const handleEditTask = (task: Task) => {
+  const handleEditTask = (task: TaskRow) => {
+    // In a real app, navigate to edit page
     toast({
       title: "Edit task",
       description: `Editing task: ${task.title}`,
     });
-    // In a real app, navigate to edit page
   };
   
-  const handleDeleteTask = (id: string) => {
-    setTasks(tasks.filter(task => task.id !== id));
-    
-    toast({
-      title: "Task deleted",
-      description: "The task has been deleted successfully",
-    });
+  const handleDeleteTask = async (id: string) => {
+    try {
+      await TaskService.deleteTask(id);
+      
+      // Update local state
+      setTasks(tasks.filter(task => task.id !== id));
+      
+      toast({
+        title: "Task deleted",
+        description: "The task has been deleted successfully",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to delete task: " + error.message,
+        variant: "destructive"
+      });
+    }
   };
   
   return (
@@ -136,7 +179,12 @@ export default function Tasks() {
           </TabsList>
           
           <div className="mt-6">
-            {filteredTasks.length > 0 ? (
+            {isLoading ? (
+              <div className="text-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-neon-pink mx-auto"></div>
+                <p className="mt-4 text-muted-foreground">Loading your tasks...</p>
+              </div>
+            ) : filteredTasks.length > 0 ? (
               <div className="space-y-4">
                 {filteredTasks.map((task) => (
                   <TaskCard
