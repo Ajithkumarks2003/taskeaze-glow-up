@@ -23,7 +23,38 @@ export default function NewTask() {
         return;
       }
       
-      const task = await TaskService.createTask(taskData);
+      // This will now create the task and associate it with the current user
+      await TaskService.createTask(taskData);
+      
+      // Update user stats to increment total_tasks
+      const { data: statsData, error: statsError } = await supabase
+        .from('user_stats')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      
+      if (!statsError) {
+        if (statsData) {
+          // Update existing stats
+          await supabase
+            .from('user_stats')
+            .update({
+              total_tasks: statsData.total_tasks + 1,
+              last_active_date: new Date().toISOString().split('T')[0]
+            })
+            .eq('user_id', user.id);
+        } else {
+          // Create new stats
+          await supabase
+            .from('user_stats')
+            .insert({
+              user_id: user.id,
+              total_tasks: 1,
+              completed_tasks: 0,
+              last_active_date: new Date().toISOString().split('T')[0]
+            });
+        }
+      }
       
       toast({
         title: "Task created",
@@ -53,3 +84,6 @@ export default function NewTask() {
     </AppLayout>
   );
 }
+
+// Add missing supabase import
+import { supabase } from '@/integrations/supabase/client';

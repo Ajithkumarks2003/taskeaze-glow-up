@@ -5,21 +5,101 @@ import { AchievementCard } from '@/components/gamification/AchievementCard';
 import { ScoreDisplay } from '@/components/gamification/ScoreDisplay';
 import { Achievement } from '@/types/achievement';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { mockAchievements, mockUser } from '@/services/mockData';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 export default function Achievements() {
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [unlockedAchievements, setUnlockedAchievements] = useState<Achievement[]>([]);
   const [lockedAchievements, setLockedAchievements] = useState<Achievement[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { profile, user } = useAuth();
+  const { toast } = useToast();
   
   useEffect(() => {
-    // Load mock achievements
-    setAchievements(mockAchievements);
-    
-    // Split achievements by unlock status
-    setUnlockedAchievements(mockAchievements.filter(a => a.unlocked));
-    setLockedAchievements(mockAchievements.filter(a => !a.unlocked));
-  }, []);
+    if (user) {
+      fetchAchievements();
+    } else {
+      setIsLoading(false);
+    }
+  }, [user]);
+  
+  const fetchAchievements = async () => {
+    try {
+      // First get all achievements
+      const { data: allAchievements, error: achievementsError } = await supabase
+        .from('achievements')
+        .select('*');
+        
+      if (achievementsError) throw achievementsError;
+      
+      // Then get user's achievements progress
+      const { data: userAchievements, error: userAchievementsError } = await supabase
+        .from('user_achievements')
+        .select('*')
+        .eq('user_id', user!.id);
+        
+      if (userAchievementsError) throw userAchievementsError;
+      
+      // Map user achievements to achievement data
+      const achievementsWithProgress: Achievement[] = (allAchievements || []).map(achievement => {
+        const userAchievement = (userAchievements || []).find(ua => ua.achievement_id === achievement.id);
+        
+        return {
+          id: achievement.id,
+          name: achievement.name,
+          description: achievement.description,
+          icon: achievement.icon || '',
+          requiredProgress: achievement.required_progress,
+          progress: userAchievement?.progress || 0,
+          unlocked: userAchievement?.unlocked || false,
+          unlockedAt: userAchievement?.unlocked_at
+        };
+      });
+      
+      // If no user achievements exist yet, initialize them
+      if (userAchievements?.length === 0 && allAchievements?.length > 0) {
+        const initialUserAchievements = allAchievements.map(achievement => ({
+          user_id: user!.id,
+          achievement_id: achievement.id,
+          progress: 0,
+          unlocked: false
+        }));
+        
+        try {
+          await supabase
+            .from('user_achievements')
+            .insert(initialUserAchievements);
+        } catch (insertError) {
+          console.error('Error initializing user achievements:', insertError);
+        }
+      }
+      
+      setAchievements(achievementsWithProgress);
+      setUnlockedAchievements(achievementsWithProgress.filter(a => a.unlocked));
+      setLockedAchievements(achievementsWithProgress.filter(a => !a.unlocked));
+    } catch (error) {
+      console.error('Error fetching achievements:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load achievements data',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  if (isLoading) {
+    return (
+      <AppLayout>
+        <div className="container max-w-3xl mx-auto py-8 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-neon-pink"></div>
+        </div>
+      </AppLayout>
+    );
+  }
   
   return (
     <AppLayout>
@@ -29,7 +109,13 @@ export default function Achievements() {
             <h1 className="text-2xl font-bold">Achievements</h1>
             <p className="text-muted-foreground">Track your progress and unlock rewards</p>
           </div>
-          <ScoreDisplay score={mockUser.score} level={mockUser.level} compact={true} />
+          {profile && (
+            <ScoreDisplay 
+              score={profile.score} 
+              level={profile.level} 
+              compact={true} 
+            />
+          )}
         </div>
         
         <div className="bg-dark-card border-dark-border rounded-lg p-4">
@@ -44,7 +130,9 @@ export default function Achievements() {
               <div
                 className="h-full bg-gradient-to-r from-neon-pink to-neon-violet"
                 style={{ 
-                  width: `${(unlockedAchievements.length / achievements.length) * 100}%` 
+                  width: achievements.length ? 
+                    `${(unlockedAchievements.length / achievements.length) * 100}%` : 
+                    '0%' 
                 }}
               />
             </div>
@@ -60,9 +148,15 @@ export default function Achievements() {
           
           <TabsContent value="all" className="mt-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {achievements.map((achievement) => (
-                <AchievementCard key={achievement.id} achievement={achievement} />
-              ))}
+              {achievements.length > 0 ? (
+                achievements.map((achievement) => (
+                  <AchievementCard key={achievement.id} achievement={achievement} />
+                ))
+              ) : (
+                <div className="col-span-3 text-center py-8 bg-dark-card rounded-lg border border-dark-border">
+                  <p className="text-muted-foreground">No achievements available yet</p>
+                </div>
+              )}
             </div>
           </TabsContent>
           
@@ -82,9 +176,15 @@ export default function Achievements() {
           
           <TabsContent value="locked" className="mt-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {lockedAchievements.map((achievement) => (
-                <AchievementCard key={achievement.id} achievement={achievement} />
-              ))}
+              {lockedAchievements.length > 0 ? (
+                lockedAchievements.map((achievement) => (
+                  <AchievementCard key={achievement.id} achievement={achievement} />
+                ))
+              ) : (
+                <div className="col-span-3 text-center py-8 bg-dark-card rounded-lg border border-dark-border">
+                  <p className="text-muted-foreground">All achievements unlocked!</p>
+                </div>
+              )}
             </div>
           </TabsContent>
         </Tabs>

@@ -16,11 +16,12 @@ import { supabase } from '@/integrations/supabase/client';
 export default function Profile() {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { profile, signOut } = useAuth();
+  const { profile, user, signOut } = useAuth();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [emailNotifications, setEmailNotifications] = useState(false);
   const [isNameEditing, setIsNameEditing] = useState(false);
   const [userName, setUserName] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
   const [userStats, setUserStats] = useState({
     completedTasks: 0,
     totalTasks: 0
@@ -29,26 +30,48 @@ export default function Profile() {
   useEffect(() => {
     if (profile) {
       setUserName(profile.name);
-      
-      // Fetch user stats
-      const fetchUserStats = async () => {
-        const { data, error } = await supabase
-          .from('user_stats')
-          .select('*')
-          .eq('user_id', profile.id)
-          .maybeSingle();
-          
-        if (!error && data) {
-          setUserStats({
-            completedTasks: data.completed_tasks,
-            totalTasks: data.total_tasks
-          });
-        }
-      };
-      
       fetchUserStats();
+      setIsLoading(false);
     }
   }, [profile]);
+  
+  const fetchUserStats = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('user_stats')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle();
+        
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error fetching user stats:', error);
+        return;
+      }
+        
+      if (data) {
+        setUserStats({
+          completedTasks: data.completed_tasks,
+          totalTasks: data.total_tasks
+        });
+      } else {
+        // Create initial stats for user if they don't exist
+        const { error: insertError } = await supabase
+          .from('user_stats')
+          .insert({
+            user_id: user.id,
+            completed_tasks: 0,
+            total_tasks: 0,
+            last_active_date: new Date().toISOString().split('T')[0]
+          });
+          
+        if (insertError) console.error('Error creating user stats:', insertError);
+      }
+    } catch (error) {
+      console.error('Failed to fetch user stats:', error);
+    }
+  };
   
   const handleNameSave = async () => {
     if (userName.trim() && profile) {
@@ -87,7 +110,7 @@ export default function Profile() {
     return date.toLocaleDateString();
   };
   
-  if (!profile) {
+  if (isLoading || !profile) {
     return (
       <AppLayout>
         <div className="container max-w-3xl mx-auto space-y-8 flex items-center justify-center h-64">

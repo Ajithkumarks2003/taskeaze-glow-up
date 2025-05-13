@@ -13,6 +13,7 @@ import { Link } from 'react-router-dom';
 import { Plus, Search } from 'lucide-react';
 import { TaskService } from '@/services/TaskService';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function Tasks() {
   const [tasks, setTasks] = useState<TaskRow[]>([]);
@@ -27,26 +28,28 @@ export default function Tasks() {
   useEffect(() => {
     // Load user tasks from Supabase
     if (user) {
-      const fetchTasks = async () => {
-        try {
-          const userTasks = await TaskService.getUserTasks();
-          setTasks(userTasks);
-          setFilteredTasks(userTasks);
-          setIsLoading(false);
-        } catch (error: any) {
-          console.error("Error fetching tasks:", error);
-          toast({
-            title: "Error loading tasks",
-            description: error.message || "Failed to load your tasks",
-            variant: "destructive"
-          });
-          setIsLoading(false);
-        }
-      };
-      
       fetchTasks();
+    } else {
+      setIsLoading(false);
     }
-  }, [user, toast]);
+  }, [user]);
+  
+  const fetchTasks = async () => {
+    try {
+      const userTasks = await TaskService.getUserTasks();
+      setTasks(userTasks);
+      setFilteredTasks(userTasks);
+      setIsLoading(false);
+    } catch (error: any) {
+      console.error("Error fetching tasks:", error);
+      toast({
+        title: "Error loading tasks",
+        description: error.message || "Failed to load your tasks",
+        variant: "destructive"
+      });
+      setIsLoading(false);
+    }
+  };
   
   useEffect(() => {
     // Apply filters whenever tasks, tab, search query or priority filter changes
@@ -93,6 +96,26 @@ export default function Tasks() {
         title: "Task completed",
         description: "Well done! You've earned points for this task.",
       });
+      
+      // Update user score
+      if (user) {
+        try {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('score')
+            .eq('id', user.id)
+            .single();
+            
+          if (profile) {
+            await supabase
+              .from('profiles')
+              .update({ score: profile.score + 10 }) // Add 10 points
+              .eq('id', user.id);
+          }
+        } catch (scoreError) {
+          console.error('Error updating score:', scoreError);
+        }
+      }
     } catch (error: any) {
       toast({
         title: "Error",
@@ -116,6 +139,32 @@ export default function Tasks() {
       
       // Update local state
       setTasks(tasks.filter(task => task.id !== id));
+      
+      // Update user stats
+      if (user) {
+        try {
+          const { data: stats } = await supabase
+            .from('user_stats')
+            .select('*')
+            .eq('user_id', user.id)
+            .maybeSingle();
+            
+          if (stats) {
+            const completedTask = tasks.find(t => t.id === id)?.completed || false;
+            const completedTasks = completedTask ? stats.completed_tasks - 1 : stats.completed_tasks;
+            
+            await supabase
+              .from('user_stats')
+              .update({
+                total_tasks: Math.max(0, stats.total_tasks - 1),
+                completed_tasks: Math.max(0, completedTasks)
+              })
+              .eq('user_id', user.id);
+          }
+        } catch (statsError) {
+          console.error('Error updating stats:', statsError);
+        }
+      }
       
       toast({
         title: "Task deleted",
