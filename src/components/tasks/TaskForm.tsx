@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { TaskService } from '@/services/TaskService';
 import { TaskRow } from '@/types/supabase-extensions';
+import { Task } from '@/types/task';
 
 interface TaskFormProps {
   existingTask?: TaskRow;

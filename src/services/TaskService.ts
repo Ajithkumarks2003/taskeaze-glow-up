@@ -30,10 +30,17 @@ export class TaskService {
       throw new Error('User not authenticated');
     }
     
+    // Ensure priority is one of the valid options
+    const validPriorities = ['Low', 'Medium', 'High', 'Urgent'];
+    const priority = validPriorities.includes(taskData.priority as string) 
+      ? taskData.priority 
+      : 'Medium';
+    
     const { data, error } = await supabase
       .from('tasks')
       .insert({
         ...taskData,
+        priority,
         user_id: userData.user.id,
         completed: false,
         points: 10 // Default points for new task

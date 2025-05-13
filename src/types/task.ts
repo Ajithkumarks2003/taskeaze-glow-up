@@ -9,4 +9,5 @@ export interface Task {
   priority: 'Low' | 'Medium' | 'High' | 'Urgent';
   tags?: string[];
   points: number;
+  userId?: string;
 }

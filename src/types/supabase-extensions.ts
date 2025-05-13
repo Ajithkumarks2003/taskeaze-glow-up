@@ -1,5 +1,6 @@
 
 import type { Database } from '@/integrations/supabase/types';
+import { Task as AppTask } from '@/types/task';
 
 // Type aliases from Supabase database
 export type ProfileRow = Database['public']['Tables']['profiles']['Row'];
@@ -13,9 +14,23 @@ export interface Profile extends ProfileRow {
   // Add any extended properties here
 }
 
-export interface Task extends TaskRow {
-  // Add any extended properties here
+// Converting from TaskRow (database) to Task (application)
+export function mapTaskRowToTask(taskRow: TaskRow): AppTask {
+  return {
+    id: taskRow.id,
+    title: taskRow.title,
+    description: taskRow.description || undefined,
+    completed: taskRow.completed,
+    createdAt: taskRow.created_at,
+    dueDate: taskRow.due_date || undefined,
+    priority: taskRow.priority as AppTask['priority'],
+    tags: taskRow.tags || undefined,
+    points: taskRow.points,
+    userId: taskRow.user_id
+  };
 }
+
+export type Task = TaskRow;
 
 export interface Achievement extends AchievementRow {
   // Add any extended properties here

@@ -2,7 +2,8 @@
 import { useState, useEffect } from 'react';
 import { AppLayout } from '@/components/common/AppLayout';
 import { TaskCard } from '@/components/tasks/TaskCard';
-import { TaskRow } from '@/types/supabase-extensions';
+import { TaskRow, mapTaskRowToTask } from '@/types/supabase-extensions';
+import { Task } from '@/types/task';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -186,15 +187,18 @@ export default function Tasks() {
               </div>
             ) : filteredTasks.length > 0 ? (
               <div className="space-y-4">
-                {filteredTasks.map((task) => (
-                  <TaskCard
-                    key={task.id}
-                    task={task}
-                    onComplete={handleCompleteTask}
-                    onEdit={handleEditTask}
-                    onDelete={handleDeleteTask}
-                  />
-                ))}
+                {filteredTasks.map((taskRow) => {
+                  const task = mapTaskRowToTask(taskRow);
+                  return (
+                    <TaskCard
+                      key={task.id}
+                      task={task}
+                      onComplete={handleCompleteTask}
+                      onEdit={() => handleEditTask(taskRow)}
+                      onDelete={handleDeleteTask}
+                    />
+                  );
+                })}
               </div>
             ) : (
               <div className="text-center py-12 bg-dark-card rounded-lg border border-dark-border">
