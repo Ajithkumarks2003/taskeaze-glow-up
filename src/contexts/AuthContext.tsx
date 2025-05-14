@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,7 +10,7 @@ interface Profile {
   id: string;
   email: string;
   name: string;
-  avatar_id: string;
+  avatar_url?: string | null;
   joined_at: string;
   level: number;
   score: number;
@@ -78,6 +79,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchProfile = async (userId: string) => {
     try {
+      console.log('Fetching profile for user:', userId);
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -85,9 +87,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .single();
 
       if (error) {
+        console.error('Error fetching profile:', error);
         throw error;
       }
 
+      console.log('Profile fetched successfully:', data);
       setProfile(data);
     } catch (error) {
       console.error('Error fetching profile:', error);
@@ -99,6 +103,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refreshProfile = async () => {
     if (user) {
+      console.log('Refreshing profile for user:', user.id);
       await fetchProfile(user.id);
     }
   };
@@ -124,6 +129,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         description: error.message || 'Please check your credentials and try again.',
         variant: 'destructive',
       });
+      throw error;
     }
   };
 
@@ -142,26 +148,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (authError) throw authError;
 
-      // Create profile
-      if (authData.user) {
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert({
-            id: authData.user.id,
-            email,
-            name,
-            joined_at: new Date().toISOString(),
-            level: 1,
-            score: 0,
-            role: 'user'
-          });
-
-        if (profileError) throw profileError;
-
-        // Fetch the created profile to ensure it's in our state
-        await fetchProfile(authData.user.id);
-      }
-
+      // Profile will be created by the ProfileSync component
+      // We just show a success message and redirect
       toast({
         title: 'Welcome to TaskEaze!',
         description: 'Your account has been created successfully.',
@@ -175,6 +163,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         description: error.message || 'Please check your information and try again.',
         variant: 'destructive',
       });
+      throw error;
     }
   };
 

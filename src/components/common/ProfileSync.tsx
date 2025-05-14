@@ -1,10 +1,11 @@
+
 import { useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 export function ProfileSync() {
-  const { user, profile } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
   const { toast } = useToast();
 
   // Create profile if it doesn't exist
@@ -118,11 +119,18 @@ export function ProfileSync() {
               console.log('No achievements found in the database');
             }
 
-            // Reload the page to refresh all data
-            console.log('Reloading page to refresh data...');
-            window.location.reload();
+            // Refresh profile data
+            await refreshProfile();
+            
+            toast({
+              title: 'Profile Created',
+              description: 'Your profile has been setup successfully!',
+              variant: 'default',
+            });
           } else {
             console.log('Profile already exists for user:', user.id);
+            // Make sure we have the latest profile data
+            await refreshProfile();
           }
         } catch (error) {
           console.error('Profile sync error:', error);
@@ -136,7 +144,7 @@ export function ProfileSync() {
     };
 
     createProfileIfMissing();
-  }, [user, profile, toast]);
+  }, [user, profile, toast, refreshProfile]);
 
   // Subscribe to profile changes
   useEffect(() => {
@@ -153,8 +161,9 @@ export function ProfileSync() {
           filter: `id=eq.${user.id}`
         },
         (payload) => {
-          // Refresh the page when profile changes
-          window.location.reload();
+          console.log('Profile changed:', payload);
+          // Refresh profile data instead of reloading page
+          refreshProfile();
         }
       )
       .subscribe();
@@ -162,7 +171,7 @@ export function ProfileSync() {
     return () => {
       channel.unsubscribe();
     };
-  }, [user]);
+  }, [user, refreshProfile]);
 
   return null;
-} 
+}

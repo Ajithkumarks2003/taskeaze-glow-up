@@ -9,6 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Check, Clock, MoreHorizontal, Pencil, Trash } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Achievement } from '@/types/achievement';
+import { toast as sonnerToast } from 'sonner';
 
 interface TaskCardProps {
   task: Task;
@@ -48,11 +49,17 @@ export function TaskCard({ task, onComplete, onEdit, onDelete }: TaskCardProps) 
         // Delay achievement notification slightly
         setTimeout(() => {
           result.unlockedAchievements?.forEach(achievement => {
-            toast({
-              title: '🎉 Achievement Unlocked!',
+            // Use Sonner toast for achievements as it's more visually striking
+            sonnerToast('Achievement Unlocked!', {
               description: `${achievement.name}: ${achievement.description}`,
-              variant: 'success',
               duration: 5000,
+              icon: achievement.icon || '🏆',
+              className: 'achievement-toast',
+              style: {
+                background: 'linear-gradient(to right, rgba(236, 72, 153, 0.2), rgba(167, 139, 250, 0.2))',
+                border: '1px solid rgba(236, 72, 153, 0.3)',
+                color: 'white',
+              },
             });
           });
         }, 500);

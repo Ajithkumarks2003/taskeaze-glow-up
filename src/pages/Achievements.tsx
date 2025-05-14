@@ -60,6 +60,8 @@ export default function Achievements() {
         }
       }
 
+      console.log('Fetched achievements:', achievementsData);
+
       // Then get user's achievements progress
       let { data: userAchievements, error: userAchievementsError } = await supabase
         .from('user_achievements')
@@ -70,6 +72,8 @@ export default function Achievements() {
         console.error('Error fetching user achievements:', userAchievementsError);
         throw userAchievementsError;
       }
+
+      console.log('Fetched user achievements:', userAchievements);
 
       // Initialize user achievements if none exist
       if (!userAchievements || userAchievements.length === 0) {
@@ -92,13 +96,15 @@ export default function Achievements() {
           id: achievement.id,
           name: achievement.name,
           description: achievement.description,
-          icon: achievement.icon || '',
+          icon: achievement.icon || '🏆',
           required_progress: achievement.required_progress,
           progress: userAchievement?.progress || 0,
           unlocked: userAchievement?.unlocked || false,
           unlockedAt: userAchievement?.unlocked_at
         };
       }) || [];
+
+      console.log('Achievements with progress:', achievementsWithProgress);
 
       // Split and set achievements
       const unlocked = achievementsWithProgress.filter(a => a.unlocked);
@@ -153,6 +159,11 @@ export default function Achievements() {
 
   const initializeUserAchievements = async (allAchievements: Achievement[]) => {
     try {
+      if (!allAchievements || allAchievements.length === 0) {
+        console.log('No achievements to initialize for user');
+        return false;
+      }
+
       const userAchievements = allAchievements.map(achievement => ({
         user_id: user!.id,
         achievement_id: achievement.id,
@@ -169,6 +180,7 @@ export default function Achievements() {
         throw error;
       }
 
+      console.log('Successfully initialized user achievements');
       return true;
     } catch (error) {
       console.error('Failed to initialize user achievements:', error);

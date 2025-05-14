@@ -14,6 +14,7 @@ import { Plus, Search } from 'lucide-react';
 import { TaskService } from '@/services/TaskService';
 import { useAuth } from '@/contexts/AuthContext';
 import { ScoreDisplay } from '@/components/gamification/ScoreDisplay';
+import { NotificationService } from '@/services/NotificationService';
 
 export default function Tasks() {
   const [tasks, setTasks] = useState<TaskRow[]>([]);
@@ -23,7 +24,7 @@ export default function Tasks() {
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
-  const { user, profile } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
   
   useEffect(() => {
     // Load user tasks from Supabase
@@ -87,10 +88,23 @@ export default function Tasks() {
     try {
       const result = await TaskService.completeTask(id);
       
-      // Update local state
+      // Update local tasks state
       setTasks(tasks.map(task => 
         task.id === id ? { ...task, completed: true } : task
       ));
+      
+      // Refresh profile to get updated score
+      await refreshProfile();
+      
+      // Show task completion notification
+      NotificationService.showTaskComplete(result.pointsEarned);
+      
+      // Show level up notification if applicable
+      if (result.leveledUp) {
+        setTimeout(() => {
+          NotificationService.showLevelUp(result.newLevel);
+        }, 500);
+      }
       
       return {
         unlockedAchievements: result.unlockedAchievements
@@ -119,6 +133,9 @@ export default function Tasks() {
       
       // Update local state
       setTasks(tasks.filter(task => task.id !== id));
+      
+      // Refresh profile to get updated data
+      await refreshProfile();
       
       toast({
         title: "Task deleted",
