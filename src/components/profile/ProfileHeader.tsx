@@ -11,7 +11,7 @@ interface ProfileHeaderProps {
   joinDate: string;
   score: number;
   level: number;
-  avatarId?: string;
+  avatarUrl?: string;
   tasks: {
     completed: number;
     total: number;
@@ -24,11 +24,11 @@ export function ProfileHeader({
   joinDate,
   score,
   level,
-  avatarId = 'owl',
+  avatarUrl = 'owl',
   tasks,
 }: ProfileHeaderProps) {
   const [isEditing, setIsEditing] = useState(false);
-  const avatar = getAnimalAvatar(avatarId);
+  const avatar = getAnimalAvatar(avatarUrl);
   
   return (
     <div className="bg-dark-card border-dark-border rounded-lg p-6 neon-border overflow-hidden">

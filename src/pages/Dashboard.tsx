@@ -141,7 +141,8 @@ export default function Dashboard() {
             id,
             name,
             description,
-            icon
+            icon,
+            required_progress
           )
         `)
         .eq('user_id', user.id)
@@ -158,7 +159,8 @@ export default function Dashboard() {
         icon: item.achievements.icon || '',
         progress: item.progress,
         unlocked: item.unlocked,
-        unlockedAt: item.unlocked_at
+        unlockedAt: item.unlocked_at,
+        required_progress: item.achievements.required_progress // Include required_progress
       }));
 
       setRecentAchievements(achievements);

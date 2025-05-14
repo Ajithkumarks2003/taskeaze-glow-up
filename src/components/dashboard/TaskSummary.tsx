@@ -5,12 +5,13 @@ import { TaskCard } from '../tasks/TaskCard';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { Achievement } from '@/types/achievement';
 
 interface TaskSummaryProps {
   title: string;
   description: string;
   tasks: Task[];
-  onComplete: (id: string) => void;
+  onComplete: (id: string) => Promise<{unlockedAchievements?: Achievement[]}>;
   onEdit: (task: Task) => void;
   onDelete: (id: string) => void;
   emptyMessage: string;

@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { AppLayout } from '@/components/common/AppLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -170,7 +169,7 @@ export default function Profile() {
               <div className="flex flex-col items-center gap-4">
                 <Avatar className="w-32 h-32">
                   <AvatarFallback className="text-4xl bg-dark-accent">
-                    {getAnimalAvatar(profile?.avatar_id).emoji}
+                    {getAnimalAvatar(profile?.avatar_url || '').emoji}
                   </AvatarFallback>
                 </Avatar>
                 <AvatarSelector />

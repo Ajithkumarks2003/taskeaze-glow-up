@@ -27,7 +27,10 @@ export function AvatarSelector() {
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({ avatar_id: animalId })
+        .update({ 
+          // Use avatar_url instead of avatar_id since that's what exists in the database
+          avatar_url: animalId
+        })
         .eq('id', user.id);
 
       if (error) throw error;
@@ -82,4 +85,4 @@ export function AvatarSelector() {
       </DialogContent>
     </Dialog>
   );
-} 
+}

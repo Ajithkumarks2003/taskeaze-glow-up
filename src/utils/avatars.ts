@@ -1,16 +1,22 @@
-export const ANIMAL_AVATARS = {
-  owl: { emoji: '🦉', name: 'Wise Owl' },
-  beaver: { emoji: '🦫', name: 'Busy Beaver' },
-  rabbit: { emoji: '🐰', name: 'Quick Rabbit' },
-  squirrel: { emoji: '🐿️', name: 'Organized Squirrel' },
-  ant: { emoji: '🐜', name: 'Diligent Ant' },
-  bee: { emoji: '🐝', name: 'Worker Bee' },
-  fox: { emoji: '🦊', name: 'Smart Fox' },
-  bear: { emoji: '🐻', name: 'Focus Bear' },
-} as const;
 
-export type AnimalAvatarId = keyof typeof ANIMAL_AVATARS;
+const ANIMAL_AVATARS = [
+  { id: 'owl', name: 'Wise Owl', emoji: '🦉' },
+  { id: 'beaver', name: 'Busy Beaver', emoji: '🦫' },
+  { id: 'rabbit', name: 'Quick Rabbit', emoji: '🐰' },
+  { id: 'squirrel', name: 'Organized Squirrel', emoji: '🐿️' },
+  { id: 'ant', name: 'Diligent Ant', emoji: '🐜' },
+  { id: 'bee', name: 'Worker Bee', emoji: '🐝' },
+  { id: 'fox', name: 'Smart Fox', emoji: '🦊' },
+  { id: 'bear', name: 'Focus Bear', emoji: '🐻' },
+  { id: 'default', name: 'Default User', emoji: '👤' },
+];
 
-export function getAnimalAvatar(id: string = 'owl') {
-  return ANIMAL_AVATARS[id as AnimalAvatarId] || ANIMAL_AVATARS.owl;
-} 
+export function getAnimalAvatar(avatarId: string | undefined) {
+  if (!avatarId) {
+    return ANIMAL_AVATARS.find(avatar => avatar.id === 'default') || ANIMAL_AVATARS[0];
+  }
+
+  return ANIMAL_AVATARS.find(avatar => avatar.id === avatarId) || 
+         ANIMAL_AVATARS.find(avatar => avatar.id === 'default') || 
+         ANIMAL_AVATARS[0];
+}

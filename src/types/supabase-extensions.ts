@@ -11,7 +11,7 @@ export type UserStatsRow = Database['public']['Tables']['user_stats']['Row'];
 
 // Extended types that can be used in components
 export interface Profile extends ProfileRow {
-  // Add any extended properties here
+  avatar_id?: string; // Add avatar_id field to support the current implementation
 }
 
 // Converting from TaskRow (database) to Task (application)
@@ -34,6 +34,8 @@ export interface Achievement extends AchievementRow {
   progress?: number;
   unlocked?: boolean;
   unlockedAt?: string;
+  required_progress: number; // Make sure required_progress is included and required
+  icon: string | null;       // Make sure icon is included
 }
 
 export interface UserAchievement extends UserAchievementRow {

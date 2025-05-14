@@ -1,4 +1,3 @@
-
 import { Task } from '@/types/task';
 import { Achievement } from '@/types/achievement';
 import { User } from '@/types/user';
@@ -15,6 +14,7 @@ export const mockTasks: Task[] = [
     priority: 'High',
     tags: ['Work', 'Client'],
     points: 50,
+    userId: 'mock-user-id', // Add userId
   },
   {
     id: '2',
@@ -25,6 +25,7 @@ export const mockTasks: Task[] = [
     priority: 'Medium',
     tags: ['Work', 'Meeting'],
     points: 20,
+    userId: 'mock-user-id', // Add userId
   },
   {
     id: '3',
@@ -36,6 +37,7 @@ export const mockTasks: Task[] = [
     priority: 'Low',
     tags: ['Personal', 'Shopping'],
     points: 10,
+    userId: 'mock-user-id', // Add userId
   },
   {
     id: '4',
@@ -47,6 +49,7 @@ export const mockTasks: Task[] = [
     priority: 'Urgent',
     tags: ['Work', 'Bug', 'Frontend'],
     points: 40,
+    userId: 'mock-user-id', // Add userId
   },
   {
     id: '5',
@@ -58,6 +61,7 @@ export const mockTasks: Task[] = [
     priority: 'High',
     tags: ['Work', 'Code Review'],
     points: 30,
+    userId: 'mock-user-id', // Add userId
   },
 ];
 
@@ -70,6 +74,8 @@ export const mockAchievements: Achievement[] = [
     unlocked: true,
     unlockedAt: '2025-05-10T15:30:00Z',
     progress: 100,
+    required_progress: 100, // Fix property name
+    icon: '🏆', // Add icon
   },
   {
     id: '2',
@@ -77,7 +83,8 @@ export const mockAchievements: Achievement[] = [
     description: 'Complete 10 tasks',
     unlocked: false,
     progress: 20,
-    requiredProgress: 100,
+    required_progress: 100, // Fix property name
+    icon: '⭐', // Add icon
   },
   {
     id: '3',
@@ -85,7 +92,8 @@ export const mockAchievements: Achievement[] = [
     description: 'Complete 5 tasks in a single day',
     unlocked: false,
     progress: 40,
-    requiredProgress: 100,
+    required_progress: 100, // Fix property name
+    icon: '🔥', // Add icon
   },
   {
     id: '4',
@@ -94,6 +102,8 @@ export const mockAchievements: Achievement[] = [
     unlocked: true,
     unlockedAt: '2025-05-11T09:45:00Z',
     progress: 100,
+    required_progress: 100, // Fix property name
+    icon: '⏰', // Add icon
   },
   {
     id: '5',
@@ -101,7 +111,8 @@ export const mockAchievements: Achievement[] = [
     description: 'Reach level 5',
     unlocked: false,
     progress: 60,
-    requiredProgress: 100,
+    required_progress: 100, // Fix property name
+    icon: '🔰', // Add icon
   },
 ];
 
