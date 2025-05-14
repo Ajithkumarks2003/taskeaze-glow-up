@@ -8,12 +8,15 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { BellRing, LogOut, Settings, Pen } from 'lucide-react';
+import { BellRing, LogOut, Settings, Pen, Trophy } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ScoreDisplay } from '@/components/gamification/ScoreDisplay';
 import { AvatarSelector } from '@/components/common/AvatarSelector';
 import { getAnimalAvatar } from '@/utils/avatars';
+import { AchievementService } from '@/services/AchievementService';
+import { Achievement } from '@/types/achievement';
+import { AchievementCard } from '@/components/gamification/AchievementCard';
 
 export default function Profile() {
   const { toast } = useToast();
@@ -24,6 +27,8 @@ export default function Profile() {
   const [isNameEditing, setIsNameEditing] = useState(false);
   const [userName, setUserName] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [achievements, setAchievements] = useState<Achievement[]>([]);
+  const [isAchievementsLoading, setIsAchievementsLoading] = useState(true);
   const [userStats, setUserStats] = useState({
     completedTasks: 0,
     totalTasks: 0
@@ -33,9 +38,29 @@ export default function Profile() {
     if (profile) {
       setUserName(profile.name || '');
       fetchUserStats();
+      fetchUserAchievements();
       setIsLoading(false);
     }
   }, [profile]);
+  
+  const fetchUserAchievements = async () => {
+    if (!user) return;
+    
+    setIsAchievementsLoading(true);
+    try {
+      const userAchievements = await AchievementService.getUserAchievements(user.id);
+      setAchievements(userAchievements);
+    } catch (error) {
+      console.error('Error fetching achievements:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load your achievements',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsAchievementsLoading(false);
+    }
+  };
   
   useEffect(() => {
     const createProfileIfMissing = async () => {
@@ -207,6 +232,35 @@ export default function Profile() {
                 </div>
               </div>
             </div>
+          </CardContent>
+        </Card>
+        
+        {/* Achievements Card */}
+        <Card className="bg-dark-card border-dark-border">
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Trophy className="mr-2 h-4 w-4" /> 
+              Achievements
+            </CardTitle>
+            <CardDescription>Track your progress and unlock special badges</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isAchievementsLoading ? (
+              <div className="flex justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-neon-pink"></div>
+              </div>
+            ) : achievements.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {achievements.map(achievement => (
+                  <AchievementCard key={achievement.id} achievement={achievement} />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Trophy className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>No achievements yet. Complete tasks to earn your first badge!</p>
+              </div>
+            )}
           </CardContent>
         </Card>
         
