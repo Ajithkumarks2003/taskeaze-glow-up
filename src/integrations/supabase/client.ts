@@ -1,5 +1,4 @@
 
-
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
@@ -18,19 +17,22 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
 });
 
 // Add debug logging for database operations
-// Convert to a proper Promise with then/catch handling
-Promise.resolve(
-  supabase.from('achievements').select('*')
-).then(({ data, error }) => {
-  if (error) {
-    console.error('Debug - Error accessing achievements table:', error.message);
-    console.error('Debug - Error details:', error);
-  } else {
-    console.log('Debug - Successfully connected to achievements table, found rows:', data?.length || 0);
+const checkDatabaseConnection = async () => {
+  try {
+    const { data, error } = await supabase.from('achievements').select('*');
+    if (error) {
+      console.error('Debug - Error accessing achievements table:', error.message);
+      console.error('Debug - Error details:', error);
+    } else {
+      console.log('Debug - Successfully connected to achievements table, found rows:', data?.length || 0);
+    }
+  } catch (error) {
+    console.error('Debug - Unexpected error:', error);
   }
-}).catch(error => {
-  console.error('Debug - Unexpected error:', error);
-});
+};
+
+// Execute the check
+checkDatabaseConnection();
 
 // Helper function to get storage URL
 export const getStorageUrl = async (bucket: string, path: string): Promise<string | null> => {
@@ -42,4 +44,3 @@ export const getStorageUrl = async (bucket: string, path: string): Promise<strin
     return null;
   }
 };
-

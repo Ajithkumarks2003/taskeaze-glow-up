@@ -6,8 +6,9 @@ import { ScoreDisplay } from '@/components/gamification/ScoreDisplay';
 import { Achievement } from '@/types/achievement';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { AchievementService } from '@/services/AchievementService';
+import { toast } from '@/hooks/use-toast';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function Achievements() {
   const [achievements, setAchievements] = useState<Achievement[]>([]);
@@ -15,7 +16,6 @@ export default function Achievements() {
   const [lockedAchievements, setLockedAchievements] = useState<Achievement[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { profile, user } = useAuth();
-  const { toast } = useToast();
   
   useEffect(() => {
     if (user) {
@@ -32,88 +32,17 @@ export default function Achievements() {
         return;
       }
       
-      // First get all achievements
-      let { data: achievementsData, error: achievementsError } = await supabase
-        .from('achievements')
-        .select('*')
-        .order('required_progress', { ascending: true });
-        
-      if (achievementsError) {
-        console.error('Error fetching achievements:', achievementsError);
-        throw achievementsError;
-      }
-      
-      if (!achievementsData || achievementsData.length === 0) {
-        // Try to initialize achievements if none exist
-        console.log('No achievements found, initializing...');
-        const initialized = await initializeAchievements();
-        
-        if (initialized) {
-          // Refetch achievements
-          const { data: refetchedData, error: refetchError } = await supabase
-            .from('achievements')
-            .select('*')
-            .order('required_progress', { ascending: true });
-            
-          if (refetchError) throw refetchError;
-          achievementsData = refetchedData;
-        }
-      }
-
-      console.log('Fetched achievements:', achievementsData);
-
-      // Then get user's achievements progress
-      let { data: userAchievements, error: userAchievementsError } = await supabase
-        .from('user_achievements')
-        .select('*')
-        .eq('user_id', user.id);
-        
-      if (userAchievementsError) {
-        console.error('Error fetching user achievements:', userAchievementsError);
-        throw userAchievementsError;
-      }
-
+      const userAchievements = await AchievementService.getUserAchievements(user.id);
       console.log('Fetched user achievements:', userAchievements);
-
-      // Initialize user achievements if none exist
-      if (!userAchievements || userAchievements.length === 0) {
-        await initializeUserAchievements(achievementsData);
-        
-        // Refetch user achievements
-        const { data: refetchedUserAchievements, error: refetchError } = await supabase
-          .from('user_achievements')
-          .select('*')
-          .eq('user_id', user.id);
-          
-        if (refetchError) throw refetchError;
-        userAchievements = refetchedUserAchievements;
-      }
-
-      // Map achievements with progress
-      const achievementsWithProgress = achievementsData?.map(achievement => {
-        const userAchievement = userAchievements?.find(ua => ua.achievement_id === achievement.id);
-        return {
-          id: achievement.id,
-          name: achievement.name,
-          description: achievement.description,
-          icon: achievement.icon || '🏆',
-          required_progress: achievement.required_progress,
-          progress: userAchievement?.progress || 0,
-          unlocked: userAchievement?.unlocked || false,
-          unlockedAt: userAchievement?.unlocked_at
-        };
-      }) || [];
-
-      console.log('Achievements with progress:', achievementsWithProgress);
-
-      // Split and set achievements
-      const unlocked = achievementsWithProgress.filter(a => a.unlocked);
-      const locked = achievementsWithProgress.filter(a => !a.unlocked);
       
-      setAchievements(achievementsWithProgress);
-      setUnlockedAchievements(unlocked);
-      setLockedAchievements(locked);
-      setIsLoading(false);
+      if (!userAchievements || userAchievements.length === 0) {
+        console.log('No achievements found, initializing...');
+        await AchievementService.initializeAchievements();
+        const newAchievements = await AchievementService.getUserAchievements(user.id);
+        processAchievements(newAchievements);
+      } else {
+        processAchievements(userAchievements);
+      }
     } catch (error: any) {
       console.error('Error in fetchAchievements:', error);
       toast({
@@ -121,78 +50,44 @@ export default function Achievements() {
         description: 'Failed to load achievements. Please try again.',
         variant: 'destructive',
       });
+    } finally {
       setIsLoading(false);
     }
   };
   
-  const initializeAchievements = async () => {
-    const defaultAchievements = [
-      { id: 'first-task', name: 'First Steps', description: 'Complete your first task', required_progress: 1, icon: '🎯' },
-      { id: 'task-master-10', name: 'Task Master', description: 'Complete 10 tasks', required_progress: 10, icon: '⭐' },
-      { id: 'task-master-50', name: 'Task Expert', description: 'Complete 50 tasks', required_progress: 50, icon: '🌟' },
-      { id: 'task-master-100', name: 'Task Legend', description: 'Complete 100 tasks', required_progress: 100, icon: '👑' },
-      { id: 'level-5', name: 'Rising Star', description: 'Reach level 5', required_progress: 5, icon: '⚡' },
-      { id: 'level-10', name: 'Power User', description: 'Reach level 10', required_progress: 10, icon: '🔥' },
-      { id: 'level-20', name: 'Elite', description: 'Reach level 20', required_progress: 20, icon: '💫' }
-    ];
+  const processAchievements = (achievementsData: Achievement[]) => {
+    if (!achievementsData) {
+      console.warn('No achievements data to process');
+      return;
+    }
     
-    try {
-      // Use upsert to add or update achievements
-      const { error } = await supabase
-        .from('achievements')
-        .upsert(defaultAchievements, {
-          onConflict: 'id',
-          ignoreDuplicates: false
-        });
-
-      if (error) {
-        console.error('Error upserting achievements:', error);
-        throw error;
-      }
-
-      return true;
-    } catch (error) {
-      console.error('Failed to initialize achievements:', error);
-      return false;
-    }
-  };
-
-  const initializeUserAchievements = async (allAchievements: Achievement[]) => {
-    try {
-      if (!allAchievements || allAchievements.length === 0) {
-        console.log('No achievements to initialize for user');
-        return false;
-      }
-
-      const userAchievements = allAchievements.map(achievement => ({
-        user_id: user!.id,
-        achievement_id: achievement.id,
-        progress: 0,
-        unlocked: false
-      }));
-
-      const { error } = await supabase
-        .from('user_achievements')
-        .insert(userAchievements);
-
-      if (error) {
-        console.error('Error initializing user achievements:', error);
-        throw error;
-      }
-
-      console.log('Successfully initialized user achievements');
-      return true;
-    } catch (error) {
-      console.error('Failed to initialize user achievements:', error);
-      return false;
-    }
+    console.log('Processing achievements:', achievementsData);
+    setAchievements(achievementsData);
+    
+    // Split achievements into unlocked and locked
+    const unlocked = achievementsData.filter(a => a.unlocked);
+    const locked = achievementsData.filter(a => !a.unlocked);
+    
+    setUnlockedAchievements(unlocked);
+    setLockedAchievements(locked);
   };
   
   if (isLoading) {
     return (
       <AppLayout>
-        <div className="container max-w-3xl mx-auto py-8 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-neon-pink"></div>
+        <div className="container max-w-3xl mx-auto py-8">
+          <div className="flex flex-col md:flex-row items-center md:items-start justify-between gap-6">
+            <div>
+              <h1 className="text-2xl font-bold">Achievements</h1>
+              <p className="text-muted-foreground">Track your progress and unlock rewards</p>
+            </div>
+            <Skeleton className="h-20 w-24" />
+          </div>
+          <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {Array(6).fill(0).map((_, i) => (
+              <Skeleton key={i} className="h-40 w-full" />
+            ))}
+          </div>
         </div>
       </AppLayout>
     );
