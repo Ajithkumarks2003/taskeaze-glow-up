@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { AppLayout } from '@/components/common/AppLayout';
 import { AchievementCard } from '@/components/gamification/AchievementCard';
@@ -7,16 +8,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-
-const DEFAULT_ACHIEVEMENTS = [
-  { id: 'first-task', name: 'First Steps', description: 'Complete your first task', required_progress: 1, icon: '🎯' },
-  { id: 'task-master-10', name: 'Task Master', description: 'Complete 10 tasks', required_progress: 10, icon: '⭐' },
-  { id: 'task-master-50', name: 'Task Expert', description: 'Complete 50 tasks', required_progress: 50, icon: '🌟' },
-  { id: 'task-master-100', name: 'Task Legend', description: 'Complete 100 tasks', required_progress: 100, icon: '👑' },
-  { id: 'level-5', name: 'Rising Star', description: 'Reach level 5', required_progress: 5, icon: '⚡' },
-  { id: 'level-10', name: 'Power User', description: 'Reach level 10', required_progress: 10, icon: '🔥' },
-  { id: 'level-20', name: 'Elite', description: 'Reach level 20', required_progress: 20, icon: '💫' }
-];
 
 export default function Achievements() {
   const [achievements, setAchievements] = useState<Achievement[]>([]);
@@ -28,10 +19,8 @@ export default function Achievements() {
   
   useEffect(() => {
     if (user) {
-      console.log('User authenticated, fetching achievements...', user.id);
       fetchAchievements();
     } else {
-      console.log('No user found, skipping achievement fetch');
       setIsLoading(false);
     }
   }, [user]);
@@ -42,119 +31,64 @@ export default function Achievements() {
         console.error('No user found when trying to fetch achievements');
         return;
       }
-
-      console.log('Starting achievement fetch process...', { userId: user.id });
       
-      // First verify user exists in profiles
-      const { data: userProfile, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-
-      if (profileError) {
-        console.error('Error fetching user profile:', {
-          message: profileError.message,
-          details: profileError.details,
-          userId: user.id
-        });
-        throw profileError;
-      }
-
-      console.log('Found user profile:', { profile: userProfile });
-
       // First get all achievements
-      console.log('Fetching achievements from database...');
-      let { data: achievements, error: achievementsError } = await supabase
+      let { data: achievementsData, error: achievementsError } = await supabase
         .from('achievements')
         .select('*')
         .order('required_progress', { ascending: true });
         
       if (achievementsError) {
-        console.error('Error fetching achievements:', {
-          message: achievementsError.message,
-          details: achievementsError.details,
-          hint: achievementsError.hint
-        });
+        console.error('Error fetching achievements:', achievementsError);
         throw achievementsError;
       }
-
-      console.log('Fetched achievements from database:', {
-        count: achievements?.length || 0,
-        achievements: achievements
-      });
       
-      // Then get user's achievements progress with detailed logging
-      console.log('Fetching user achievements for user:', user.id);
-      let { data: userAchievements, error: userAchievementsError } = await supabase
-        .from('user_achievements')
-        .select(`
-          *,
-          achievements (
-            id,
-            name
-          )
-        `)
-        .eq('user_id', user.id);
-        
-      if (userAchievementsError) {
-        console.error('Error fetching user achievements:', {
-          message: userAchievementsError.message,
-          details: userAchievementsError.details,
-          userId: user.id
-        });
-        throw userAchievementsError;
-      }
-
-      console.log('Fetched user achievements:', {
-        count: userAchievements?.length || 0,
-        userAchievements: userAchievements,
-        userId: user.id
-      });
-
-      // Initialize user achievements if none exist
-      if (!userAchievements || userAchievements.length === 0) {
-        console.log('No user achievements found, initializing for user:', user.id);
-        const initialized = await initializeUserAchievements(achievements);
+      if (!achievementsData || achievementsData.length === 0) {
+        // Try to initialize achievements if none exist
+        console.log('No achievements found, initializing...');
+        const initialized = await initializeAchievements();
         
         if (initialized) {
-          // Refetch user achievements after initialization
-          console.log('Refetching user achievements after initialization...');
-          const { data: refetchedAchievements, error: refetchError } = await supabase
-            .from('user_achievements')
-            .select(`
-              *,
-              achievements (
-                id,
-                name
-              )
-            `)
-            .eq('user_id', user.id);
+          // Refetch achievements
+          const { data: refetchedData, error: refetchError } = await supabase
+            .from('achievements')
+            .select('*')
+            .order('required_progress', { ascending: true });
             
-          if (refetchError) {
-            console.error('Error refetching user achievements:', {
-              message: refetchError.message,
-              details: refetchError.details,
-              userId: user.id
-            });
-            throw refetchError;
-          }
-          userAchievements = refetchedAchievements;
-          console.log('Successfully initialized and refetched user achievements:', {
-            count: userAchievements?.length || 0,
-            achievements: userAchievements
-          });
-        } else {
-          console.error('Failed to initialize user achievements');
-          throw new Error('Failed to initialize user achievements');
+          if (refetchError) throw refetchError;
+          achievementsData = refetchedData;
         }
       }
 
+      // Then get user's achievements progress
+      let { data: userAchievements, error: userAchievementsError } = await supabase
+        .from('user_achievements')
+        .select('*')
+        .eq('user_id', user.id);
+        
+      if (userAchievementsError) {
+        console.error('Error fetching user achievements:', userAchievementsError);
+        throw userAchievementsError;
+      }
+
+      // Initialize user achievements if none exist
+      if (!userAchievements || userAchievements.length === 0) {
+        await initializeUserAchievements(achievementsData);
+        
+        // Refetch user achievements
+        const { data: refetchedUserAchievements, error: refetchError } = await supabase
+          .from('user_achievements')
+          .select('*')
+          .eq('user_id', user.id);
+          
+        if (refetchError) throw refetchError;
+        userAchievements = refetchedUserAchievements;
+      }
+
       // Map achievements with progress
-      console.log('Mapping achievements with progress...');
-      const achievementsWithProgress = achievements.map(achievement => {
-        const userAchievement = userAchievements!.find(ua => ua.achievement_id === achievement.id);
-        const mapped = {
+      const achievementsWithProgress = achievementsData?.map(achievement => {
+        const userAchievement = userAchievements?.find(ua => ua.achievement_id === achievement.id);
+        return {
           id: achievement.id,
           name: achievement.name,
           description: achievement.description,
@@ -164,37 +98,18 @@ export default function Achievements() {
           unlocked: userAchievement?.unlocked || false,
           unlockedAt: userAchievement?.unlocked_at
         };
-        console.log('Mapped achievement:', {
-          id: mapped.id,
-          progress: mapped.progress,
-          unlocked: mapped.unlocked,
-          userAchievement: userAchievement
-        });
-        return mapped;
-      });
+      }) || [];
 
       // Split and set achievements
       const unlocked = achievementsWithProgress.filter(a => a.unlocked);
       const locked = achievementsWithProgress.filter(a => !a.unlocked);
       
-      console.log('Final achievement counts:', {
-        total: achievementsWithProgress.length,
-        unlocked: unlocked.length,
-        locked: locked.length
-      });
-
       setAchievements(achievementsWithProgress);
       setUnlockedAchievements(unlocked);
       setLockedAchievements(locked);
       setIsLoading(false);
-
     } catch (error: any) {
-      console.error('Error in fetchAchievements:', {
-        message: error.message,
-        details: error.details,
-        hint: error.hint,
-        stack: error.stack
-      });
+      console.error('Error in fetchAchievements:', error);
       toast({
         title: 'Error',
         description: 'Failed to load achievements. Please try again.',
@@ -205,43 +120,38 @@ export default function Achievements() {
   };
   
   const initializeAchievements = async () => {
-    console.log('Starting achievements initialization...');
+    const defaultAchievements = [
+      { id: 'first-task', name: 'First Steps', description: 'Complete your first task', required_progress: 1, icon: '🎯' },
+      { id: 'task-master-10', name: 'Task Master', description: 'Complete 10 tasks', required_progress: 10, icon: '⭐' },
+      { id: 'task-master-50', name: 'Task Expert', description: 'Complete 50 tasks', required_progress: 50, icon: '🌟' },
+      { id: 'task-master-100', name: 'Task Legend', description: 'Complete 100 tasks', required_progress: 100, icon: '👑' },
+      { id: 'level-5', name: 'Rising Star', description: 'Reach level 5', required_progress: 5, icon: '⚡' },
+      { id: 'level-10', name: 'Power User', description: 'Reach level 10', required_progress: 10, icon: '🔥' },
+      { id: 'level-20', name: 'Elite', description: 'Reach level 20', required_progress: 20, icon: '💫' }
+    ];
+    
     try {
       // Use upsert to add or update achievements
       const { error } = await supabase
         .from('achievements')
-        .upsert(DEFAULT_ACHIEVEMENTS, {
+        .upsert(defaultAchievements, {
           onConflict: 'id',
           ignoreDuplicates: false
         });
 
       if (error) {
-        console.error('Error upserting achievements:', {
-          message: error.message,
-          details: error.details,
-          hint: error.hint
-        });
+        console.error('Error upserting achievements:', error);
         throw error;
       }
 
-      console.log('Successfully initialized achievements with:', {
-        count: DEFAULT_ACHIEVEMENTS.length,
-        achievements: DEFAULT_ACHIEVEMENTS
-      });
       return true;
-    } catch (error: any) {
-      console.error('Failed to initialize achievements:', {
-        message: error.message,
-        details: error.details,
-        hint: error.hint,
-        stack: error.stack
-      });
+    } catch (error) {
+      console.error('Failed to initialize achievements:', error);
       return false;
     }
   };
 
   const initializeUserAchievements = async (allAchievements: Achievement[]) => {
-    console.log('Initializing user achievements...');
     try {
       const userAchievements = allAchievements.map(achievement => ({
         user_id: user!.id,
@@ -259,7 +169,6 @@ export default function Achievements() {
         throw error;
       }
 
-      console.log('Successfully initialized user achievements');
       return true;
     } catch (error) {
       console.error('Failed to initialize user achievements:', error);

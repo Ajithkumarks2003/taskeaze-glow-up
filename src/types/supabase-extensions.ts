@@ -24,14 +24,18 @@ export function mapTaskRowToTask(taskRow: TaskRow): AppTask {
     createdAt: taskRow.created_at,
     dueDate: taskRow.due_date || undefined,
     priority: taskRow.priority as AppTask['priority'],
-    tags: taskRow.tags || undefined,
+    tags: taskRow.tags || [],
     points: taskRow.points,
     userId: taskRow.user_id
   };
 }
 
-export type Task = TaskRow;
-
 export interface Achievement extends AchievementRow {
-  // Add any extended properties here
+  progress?: number;
+  unlocked?: boolean;
+  unlockedAt?: string;
+}
+
+export interface UserAchievement extends UserAchievementRow {
+  achievement?: Achievement;
 }

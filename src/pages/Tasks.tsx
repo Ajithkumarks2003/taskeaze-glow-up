@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { AppLayout } from '@/components/common/AppLayout';
 import { TaskCard } from '@/components/tasks/TaskCard';
@@ -12,7 +13,7 @@ import { Link } from 'react-router-dom';
 import { Plus, Search } from 'lucide-react';
 import { TaskService } from '@/services/TaskService';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { ScoreDisplay } from '@/components/gamification/ScoreDisplay';
 
 export default function Tasks() {
   const [tasks, setTasks] = useState<TaskRow[]>([]);
@@ -22,7 +23,7 @@ export default function Tasks() {
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   
   useEffect(() => {
     // Load user tasks from Supabase
@@ -84,27 +85,27 @@ export default function Tasks() {
   
   const handleCompleteTask = async (id: string) => {
     try {
-      await TaskService.completeTask(id);
+      const result = await TaskService.completeTask(id);
       
       // Update local state
       setTasks(tasks.map(task => 
         task.id === id ? { ...task, completed: true } : task
       ));
       
-      toast({
-        title: "Task completed",
-        description: "Well done! You've earned points for this task.",
-      });
+      return {
+        unlockedAchievements: result.unlockedAchievements
+      };
     } catch (error: any) {
       toast({
         title: "Error",
         description: "Failed to complete task: " + error.message,
         variant: "destructive"
       });
+      return { unlockedAchievements: [] };
     }
   };
   
-  const handleEditTask = (task: TaskRow) => {
+  const handleEditTask = (task: Task) => {
     // In a real app, navigate to edit page
     toast({
       title: "Edit task",
@@ -118,32 +119,6 @@ export default function Tasks() {
       
       // Update local state
       setTasks(tasks.filter(task => task.id !== id));
-      
-      // Update user stats
-      if (user) {
-        try {
-          const { data: stats } = await supabase
-            .from('user_stats')
-            .select('*')
-            .eq('user_id', user.id)
-            .maybeSingle();
-            
-          if (stats) {
-            const completedTask = tasks.find(t => t.id === id)?.completed || false;
-            const completedTasks = completedTask ? stats.completed_tasks - 1 : stats.completed_tasks;
-            
-            await supabase
-              .from('user_stats')
-              .update({
-                total_tasks: Math.max(0, stats.total_tasks - 1),
-                completed_tasks: Math.max(0, completedTasks)
-              })
-              .eq('user_id', user.id);
-          }
-        } catch (statsError) {
-          console.error('Error updating stats:', statsError);
-        }
-      }
       
       toast({
         title: "Task deleted",
@@ -167,12 +142,22 @@ export default function Tasks() {
             <p className="text-muted-foreground">Manage and organize your tasks</p>
           </div>
           
-          <Button asChild className="bg-gradient-to-r from-neon-pink to-neon-violet hover:shadow-lg hover:shadow-neon-pink/20">
-            <Link to="/new-task" className="flex items-center">
-              <Plus className="mr-2 h-4 w-4" />
-              New Task
-            </Link>
-          </Button>
+          <div className="flex items-center gap-4">
+            {profile && (
+              <ScoreDisplay 
+                score={profile.score} 
+                level={profile.level} 
+                compact={true} 
+              />
+            )}
+            
+            <Button asChild className="bg-gradient-to-r from-neon-pink to-neon-violet hover:shadow-lg hover:shadow-neon-pink/20">
+              <Link to="/new-task" className="flex items-center">
+                <Plus className="mr-2 h-4 w-4" />
+                New Task
+              </Link>
+            </Button>
+          </div>
         </div>
         
         <div className="flex flex-col sm:flex-row gap-4">
@@ -222,7 +207,7 @@ export default function Tasks() {
                       key={task.id}
                       task={task}
                       onComplete={handleCompleteTask}
-                      onEdit={() => handleEditTask(taskRow)}
+                      onEdit={handleEditTask}
                       onDelete={handleDeleteTask}
                     />
                   );

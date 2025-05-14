@@ -1,6 +1,6 @@
+
 import { useEffect, useState } from 'react';
 import { AppLayout } from '@/components/common/AppLayout';
-import { ProfileHeader } from '@/components/profile/ProfileHeader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -32,7 +32,7 @@ export default function Profile() {
   
   useEffect(() => {
     if (profile) {
-      setUserName(profile.name);
+      setUserName(profile.name || '');
       fetchUserStats();
       setIsLoading(false);
     }
@@ -47,7 +47,7 @@ export default function Profile() {
           .insert({
             id: user.id,
             email: user.email,
-            name: user.user_metadata?.name || '',
+            name: user.user_metadata?.name || user.email?.split('@')[0] || 'User',
             joined_at: new Date().toISOString(),
             level: 1,
             score: 0,
@@ -195,6 +195,17 @@ export default function Profile() {
                     Joined {profile?.joined_at && new Date(profile.joined_at).toLocaleDateString()}
                   </p>
                 </div>
+                
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <div className="bg-dark-accent p-3 rounded-md flex-1">
+                    <p className="text-sm text-muted-foreground">Completed tasks</p>
+                    <p className="text-xl font-medium">{userStats.completedTasks}</p>
+                  </div>
+                  <div className="bg-dark-accent p-3 rounded-md flex-1">
+                    <p className="text-sm text-muted-foreground">Total tasks</p>
+                    <p className="text-xl font-medium">{userStats.totalTasks}</p>
+                  </div>
+                </div>
               </div>
             </div>
           </CardContent>
@@ -232,7 +243,7 @@ export default function Profile() {
                       </Button>
                       <Button
                         onClick={() => {
-                          setUserName(profile.name);
+                          setUserName(profile.name || '');
                           setIsNameEditing(false);
                         }}
                         size="sm"

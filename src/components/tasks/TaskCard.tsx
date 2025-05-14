@@ -8,10 +8,11 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { useToast } from '@/hooks/use-toast';
 import { Check, Clock, MoreHorizontal, Pencil, Trash } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Achievement } from '@/types/achievement';
 
 interface TaskCardProps {
   task: Task;
-  onComplete: (id: string) => void;
+  onComplete: (id: string) => Promise<{unlockedAchievements?: Achievement[]}>;
   onEdit: (task: Task) => void;
   onDelete: (id: string) => void;
 }
@@ -34,14 +35,28 @@ export function TaskCard({ task, onComplete, onEdit, onDelete }: TaskCardProps) 
     setIsCompleting(true);
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 800));
-      onComplete(task.id);
+      const result = await onComplete(task.id);
       
+      // Show task completion toast
       toast({
         title: 'Task completed!',
         description: 'You earned points for this task',
       });
+      
+      // Show achievement unlocks if any
+      if (result.unlockedAchievements && result.unlockedAchievements.length > 0) {
+        // Delay achievement notification slightly
+        setTimeout(() => {
+          result.unlockedAchievements?.forEach(achievement => {
+            toast({
+              title: '🎉 Achievement Unlocked!',
+              description: `${achievement.name}: ${achievement.description}`,
+              variant: 'success',
+              duration: 5000,
+            });
+          });
+        }, 500);
+      }
     } catch (error) {
       toast({
         title: 'Error',

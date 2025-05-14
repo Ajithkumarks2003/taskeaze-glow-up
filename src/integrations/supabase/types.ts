@@ -16,6 +16,7 @@ export type Database = {
           id: string
           name: string
           required_progress: number
+          user_id: string | null
         }
         Insert: {
           description: string
@@ -23,6 +24,7 @@ export type Database = {
           id?: string
           name: string
           required_progress?: number
+          user_id?: string | null
         }
         Update: {
           description?: string
@@ -30,6 +32,7 @@ export type Database = {
           id?: string
           name?: string
           required_progress?: number
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -41,6 +44,7 @@ export type Database = {
           joined_at: string
           level: number
           name: string
+          profile_photo_url: string | null
           role: string
           score: number
         }
@@ -51,6 +55,7 @@ export type Database = {
           joined_at?: string
           level?: number
           name: string
+          profile_photo_url?: string | null
           role?: string
           score?: number
         }
@@ -61,6 +66,7 @@ export type Database = {
           joined_at?: string
           level?: number
           name?: string
+          profile_photo_url?: string | null
           role?: string
           score?: number
         }

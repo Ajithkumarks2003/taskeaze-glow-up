@@ -7,7 +7,7 @@ export interface Task {
   createdAt: string;
   dueDate?: string;
   priority: 'Low' | 'Medium' | 'High' | 'Urgent';
-  tags?: string[];
+  tags: string[];
   points: number;
-  userId?: string;
+  userId: string;
 }
