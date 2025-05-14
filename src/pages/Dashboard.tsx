@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { AppLayout } from '@/components/common/AppLayout';
 import { Logo } from '@/components/common/Logo';
@@ -169,7 +168,7 @@ export default function Dashboard() {
     }
   };
 
-  const handleCompleteTask = async (id: string) => {
+  const handleCompleteTask = async (id: string): Promise<{unlockedAchievements?: Achievement[]}> => {
     try {
       // Find and update the task in the appropriate list
       const updatedTodayTasks = todayTasks.filter(task => task.id !== id);
@@ -221,6 +220,9 @@ export default function Dashboard() {
         title: 'Task completed!',
         description: 'You earned points for this task',
       });
+
+      // Return the expected object shape
+      return { unlockedAchievements: [] };
     } catch (error: any) {
       console.error('Error completing task:', error);
       toast({
@@ -228,6 +230,8 @@ export default function Dashboard() {
         description: 'Failed to complete task: ' + error.message,
         variant: 'destructive',
       });
+      // Still need to return the expected object shape even in error case
+      return { unlockedAchievements: [] };
     }
   };
 

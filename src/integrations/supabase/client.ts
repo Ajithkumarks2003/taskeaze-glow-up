@@ -18,7 +18,7 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
 });
 
 // Add debug logging for database operations
-// Fix: Convert this to a proper Promise chain with catch
+// Fix: Convert to a proper Promise with then/catch
 supabase.from('achievements').select('*').then(({ data, error }) => {
   if (error) {
     console.error('Debug - Error accessing achievements table:', error.message);
