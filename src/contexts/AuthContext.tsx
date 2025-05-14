@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -6,14 +5,26 @@ import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import type { ProfileRow } from '@/types/supabase-extensions';
 
+interface Profile {
+  id: string;
+  email: string;
+  name: string;
+  avatar_id: string;
+  joined_at: string;
+  level: number;
+  score: number;
+  role: string;
+}
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
-  profile: ProfileRow | null;
+  profile: Profile | null;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, name: string) => Promise<void>;
   signOut: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -21,7 +32,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [profile, setProfile] = useState<ProfileRow | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -42,7 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (currentSession?.user && event !== 'SIGNED_OUT') {
           // Defer Supabase calls with setTimeout
           setTimeout(() => {
-            fetchUserProfile(currentSession.user.id);
+            fetchProfile(currentSession.user.id);
           }, 0);
         }
       }
@@ -54,7 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(currentSession?.user ?? null);
       
       if (currentSession?.user) {
-        fetchUserProfile(currentSession.user.id);
+        fetchProfile(currentSession.user.id);
       } else {
         setIsLoading(false);
       }
@@ -65,13 +76,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  const fetchUserProfile = async (userId: string) => {
+  const fetchProfile = async (userId: string) => {
     try {
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .maybeSingle();
+        .single();
 
       if (error) {
         throw error;
@@ -79,14 +90,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       setProfile(data);
     } catch (error) {
-      console.error('Error fetching user profile:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to fetch your profile information.',
-        variant: 'destructive',
-      });
+      console.error('Error fetching profile:', error);
+      setProfile(null);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const refreshProfile = async () => {
+    if (user) {
+      await fetchProfile(user.id);
     }
   };
 
@@ -116,7 +129,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signUp = async (email: string, password: string, name: string) => {
     try {
-      const { error } = await supabase.auth.signUp({
+      // Sign up with auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -126,7 +140,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         },
       });
 
-      if (error) throw error;
+      if (authError) throw authError;
+
+      // Create profile
+      if (authData.user) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            id: authData.user.id,
+            email,
+            name,
+            joined_at: new Date().toISOString(),
+            level: 1,
+            score: 0,
+            role: 'user'
+          });
+
+        if (profileError) throw profileError;
+
+        // Fetch the created profile to ensure it's in our state
+        await fetchProfile(authData.user.id);
+      }
 
       toast({
         title: 'Welcome to TaskEaze!',
@@ -135,6 +169,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       navigate('/dashboard');
     } catch (error: any) {
+      console.error('Sign up error:', error);
       toast({
         title: 'Sign up failed',
         description: error.message || 'Please check your information and try again.',
@@ -170,6 +205,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signIn,
         signUp,
         signOut,
+        refreshProfile,
       }}
     >
       {children}

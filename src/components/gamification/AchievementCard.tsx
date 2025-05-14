@@ -1,61 +1,62 @@
-
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Achievement } from '@/types/achievement';
-import { Award, Lock } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { Lock } from 'lucide-react';
 
 interface AchievementCardProps {
   achievement: Achievement;
 }
 
 export function AchievementCard({ achievement }: AchievementCardProps) {
-  const { name, description, unlocked, icon, progress } = achievement;
-  
+  const progress = achievement.progress || 0;
+  const progressPercentage = Math.min((progress / achievement.required_progress) * 100, 100);
+
   return (
-    <Card className={cn(
-      "bg-dark-card border-dark-border transition-all overflow-hidden",
-      unlocked 
-        ? "neon-border" 
-        : "opacity-70 hover:opacity-80",
-    )}>
-      <CardHeader className="p-4 pb-0">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-base font-medium">
-            {name}
-          </CardTitle>
-          <div className="h-8 w-8 rounded-full bg-dark-accent flex items-center justify-center">
-            {unlocked ? (
-              <Award className="h-4 w-4 text-neon-pink" />
+    <Card className={`relative overflow-hidden transition-all duration-300 ${
+      achievement.unlocked ? 'bg-dark-card border-neon-pink/50' : 'bg-dark-card/50 border-dark-border'
+    }`}>
+      <CardHeader className="pb-2">
+        <div className="flex items-center gap-3">
+          <div className={`text-2xl ${achievement.unlocked ? 'opacity-100' : 'opacity-50'}`}>
+            {achievement.icon}
+          </div>
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <h3 className={`font-medium ${achievement.unlocked ? 'text-white' : 'text-muted-foreground'}`}>
+                {achievement.name}
+              </h3>
+              {!achievement.unlocked && (
+                <Lock className="h-4 w-4 text-muted-foreground" />
+              )}
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {achievement.description}
+            </p>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-2">
+          <Progress value={progressPercentage} className="h-2" />
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">
+              Progress: {progress}/{achievement.required_progress}
+            </span>
+            {achievement.unlocked ? (
+              <span className="text-neon-pink">
+                Unlocked {achievement.unlockedAt && new Date(achievement.unlockedAt).toLocaleDateString()}
+              </span>
             ) : (
-              <Lock className="h-4 w-4 text-muted-foreground" />
+              <span className="text-muted-foreground">
+                {progressPercentage}% complete
+              </span>
             )}
           </div>
         </div>
-        <CardDescription className="text-sm text-muted-foreground">
-          {description}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="p-4">
-        {progress !== undefined && (
-          <div className="mt-2">
-            <div className="text-xs text-muted-foreground mb-1 flex justify-between">
-              <span>Progress</span>
-              <span>{progress}%</span>
-            </div>
-            <div className="h-2 bg-dark-accent rounded-full overflow-hidden">
-              <div 
-                className={cn(
-                  "h-full rounded-full",
-                  unlocked 
-                    ? "bg-gradient-to-r from-neon-pink to-neon-violet" 
-                    : "bg-muted-foreground"
-                )}
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-          </div>
-        )}
       </CardContent>
+      {achievement.unlocked && (
+        <div className="absolute inset-0 bg-gradient-to-r from-neon-pink/5 to-neon-violet/5" />
+      )}
     </Card>
   );
 }

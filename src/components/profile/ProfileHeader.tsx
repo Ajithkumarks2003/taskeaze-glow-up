@@ -1,9 +1,9 @@
-
 import { useState } from 'react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { User, Calendar, Settings } from 'lucide-react';
 import { ScoreDisplay } from '../gamification/ScoreDisplay';
+import { getAnimalAvatar } from '@/utils/avatars';
 
 interface ProfileHeaderProps {
   name: string;
@@ -11,6 +11,7 @@ interface ProfileHeaderProps {
   joinDate: string;
   score: number;
   level: number;
+  avatarId?: string;
   tasks: {
     completed: number;
     total: number;
@@ -23,36 +24,21 @@ export function ProfileHeader({
   joinDate,
   score,
   level,
+  avatarId = 'owl',
   tasks,
 }: ProfileHeaderProps) {
   const [isEditing, setIsEditing] = useState(false);
-  const initials = name
-    .split(' ')
-    .map(n => n[0])
-    .join('')
-    .toUpperCase();
+  const avatar = getAnimalAvatar(avatarId);
   
   return (
     <div className="bg-dark-card border-dark-border rounded-lg p-6 neon-border overflow-hidden">
       <div className="flex flex-col md:flex-row gap-6">
         <div className="flex flex-col items-center md:items-start">
           <Avatar className="h-20 w-20 border-2 border-neon-pink/30">
-            <AvatarFallback className="bg-dark-accent text-lg">
-              {initials}
+            <AvatarFallback className="bg-dark-accent text-2xl">
+              {avatar.emoji}
             </AvatarFallback>
-            <AvatarImage src="" />
           </Avatar>
-          
-          {isEditing ? (
-            <Button
-              variant="outline"
-              size="sm"
-              className="mt-2 text-xs border-neon-pink/30 text-neon-pink"
-              onClick={() => setIsEditing(false)}
-            >
-              Upload Photo
-            </Button>
-          ) : null}
         </div>
         
         <div className="flex-1 text-center md:text-left">

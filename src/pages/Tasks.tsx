@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { AppLayout } from '@/components/common/AppLayout';
 import { TaskCard } from '@/components/tasks/TaskCard';
@@ -96,26 +95,6 @@ export default function Tasks() {
         title: "Task completed",
         description: "Well done! You've earned points for this task.",
       });
-      
-      // Update user score
-      if (user) {
-        try {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('score')
-            .eq('id', user.id)
-            .single();
-            
-          if (profile) {
-            await supabase
-              .from('profiles')
-              .update({ score: profile.score + 10 }) // Add 10 points
-              .eq('id', user.id);
-          }
-        } catch (scoreError) {
-          console.error('Error updating score:', scoreError);
-        }
-      }
     } catch (error: any) {
       toast({
         title: "Error",

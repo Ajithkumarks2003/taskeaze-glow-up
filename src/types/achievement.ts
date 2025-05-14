@@ -1,11 +1,19 @@
-
 export interface Achievement {
   id: string;
   name: string;
   description: string;
-  unlocked: boolean;
-  unlockedAt?: string;
-  icon?: string;
+  icon: string | null;
+  required_progress: number;
   progress?: number;
-  requiredProgress?: number;
+  unlocked?: boolean;
+  unlockedAt?: string;
+}
+
+export interface UserAchievement {
+  id: string;
+  user_id: string;
+  achievement_id: string;
+  progress: number;
+  unlocked: boolean;
+  unlocked_at?: string;
 }

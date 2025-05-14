@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { AppLayout } from '@/components/common/AppLayout';
 import { ProfileHeader } from '@/components/profile/ProfileHeader';
@@ -12,6 +11,10 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { BellRing, LogOut, Settings, Pen } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { ScoreDisplay } from '@/components/gamification/ScoreDisplay';
+import { AvatarSelector } from '@/components/common/AvatarSelector';
+import { getAnimalAvatar } from '@/utils/avatars';
 
 export default function Profile() {
   const { toast } = useToast();
@@ -34,6 +37,41 @@ export default function Profile() {
       setIsLoading(false);
     }
   }, [profile]);
+  
+  useEffect(() => {
+    const createProfileIfMissing = async () => {
+      if (user && !profile) {
+        // Try to create the profile
+        const { error } = await supabase
+          .from('profiles')
+          .insert({
+            id: user.id,
+            email: user.email,
+            name: user.user_metadata?.name || '',
+            joined_at: new Date().toISOString(),
+            level: 1,
+            score: 0,
+            role: 'user'
+          });
+        if (error) {
+          toast({
+            title: 'Profile setup failed',
+            description: error.message,
+            variant: 'destructive',
+          });
+        } else {
+          toast({
+            title: 'Profile created',
+            description: 'Your profile was set up successfully.',
+          });
+          // Optionally, refetch or reload the profile here
+          window.location.reload();
+        }
+      }
+      setIsLoading(false);
+    };
+    createProfileIfMissing();
+  }, [user, profile, toast]);
   
   const fetchUserStats = async () => {
     if (!user) return;
@@ -122,18 +160,45 @@ export default function Profile() {
   
   return (
     <AppLayout>
-      <div className="container max-w-3xl mx-auto space-y-8">
-        <ProfileHeader 
-          name={userName}
-          email={profile.email}
-          joinDate={formatDate(profile.joined_at)}
-          score={profile.score}
-          level={profile.level}
-          tasks={{
-            completed: userStats.completedTasks,
-            total: userStats.totalTasks
-          }}
-        />
+      <div className="container max-w-3xl mx-auto py-8 space-y-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>Profile</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col md:flex-row items-center gap-8">
+              <div className="flex flex-col items-center gap-4">
+                <Avatar className="w-32 h-32">
+                  <AvatarFallback className="text-4xl bg-dark-accent">
+                    {getAnimalAvatar(profile?.avatar_id).emoji}
+                  </AvatarFallback>
+                </Avatar>
+                <AvatarSelector />
+              </div>
+              
+              <div className="flex-1 space-y-4">
+                <div>
+                  <h3 className="text-lg font-medium">{profile?.name}</h3>
+                  <p className="text-sm text-muted-foreground">{user?.email}</p>
+                </div>
+                
+                <div className="flex items-center gap-4">
+                  <ScoreDisplay 
+                    score={profile?.score || 0} 
+                    level={profile?.level || 1} 
+                    compact={false}
+                  />
+                </div>
+                
+                <div>
+                  <p className="text-sm text-muted-foreground">
+                    Joined {profile?.joined_at && new Date(profile.joined_at).toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
         
         <Card className="bg-dark-card border-dark-border">
           <CardHeader>
